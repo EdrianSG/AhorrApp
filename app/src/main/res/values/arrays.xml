@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="currencies">
+        <item>$ (Dólar estadounidense)</item>
+        <item>€ (Euro)</item>
+        <item>s/ (Sol peruano)</item>
+        <item>$ (Peso mexicano)</item>
+        <item>$ (Peso argentino)</item>
+    </string-array>
+
+    <string-array name="currencies_values">
+        <item>USD</item>
+        <item>EUR</item>
+        <item>PEN</item>
+        <item>MXN</item>
+        <item>ARS</item>
+    </string-array>
+
+    <string-array name="languages">
+        <item>Español</item>
+        <item>English</item>
+        <item>Português</item>
+    </string-array>
+
+    <string-array name="languages_values">
+        <item>es</item>
+        <item>en</item>
+        <item>pt</item>
+    </string-array>
+</resources> 
