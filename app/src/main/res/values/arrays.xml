@@ -3,7 +3,7 @@
     <string-array name="currencies">
         <item>$ (Dólar estadounidense)</item>
         <item>€ (Euro)</item>
-        <item>s/ (Sol peruano)</item>
+        <item>S/ (Sol peruano)</item>
         <item>$ (Peso mexicano)</item>
         <item>$ (Peso argentino)</item>
     </string-array>

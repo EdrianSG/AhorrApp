@@ -7,16 +7,16 @@ import java.util.*
 object CurrencyUtils {
     fun formatAmount(context: Context, amount: Double): String {
         val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val currencyCode = prefs.getString("currency", "USD") ?: "USD"
+        val currencyCode = prefs.getString("currency", "MXN") ?: "MXN"
         
-        val format = NumberFormat.getCurrencyInstance()
-        format.currency = Currency.getInstance(currencyCode)
-        
-        // Manejar casos especiales
-        return when (currencyCode) {
-            "PEN" -> "S/ ${String.format("%.2f", amount)}"
-            else -> format.format(amount)
+        if (currencyCode == "PEN") {
+            // Formato especial para soles peruanos
+            return String.format("S/ %.2f", amount)
         }
+        
+        val format = NumberFormat.getCurrencyInstance(Locale("es", "MX"))
+        format.currency = Currency.getInstance(currencyCode)
+        return format.format(amount)
     }
 
     fun getCurrencySymbol(context: Context): String {

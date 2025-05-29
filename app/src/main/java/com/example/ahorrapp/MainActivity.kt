@@ -2,67 +2,46 @@ package com.example.ahorrapp
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
 import com.example.ahorrapp.databinding.ActivityMainBinding
+import com.example.ahorrapp.utils.SessionManager
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private var currentNavigationId = R.id.navigation_home
+    private lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Restaurar el estado de navegación si existe
-        currentNavigationId = savedInstanceState?.getInt("current_navigation", R.id.navigation_home)
-            ?: R.id.navigation_home
+        sessionManager = SessionManager(this)
 
-        // Cargar el fragmento inicial o restaurar el anterior
-        if (savedInstanceState == null) {
-            loadFragment(getFragmentForNavigation(currentNavigationId))
-        }
+        // Configurar el NavController
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
 
-        binding.bottomNavigation.setOnItemSelectedListener { item ->
-            currentNavigationId = item.itemId
-            when (item.itemId) {
-                R.id.navigation_home -> {
-                    loadFragment(HomeFragment())
-                    true
+        // Configurar la navegación inferior
+        binding.bottomNavigation.setupWithNavController(navController)
+
+        // Ocultar/mostrar la barra de navegación según la pantalla
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            when (destination.id) {
+                R.id.loginFragment, R.id.registerFragment -> {
+                    binding.bottomNavigation.visibility = android.view.View.GONE
                 }
-                R.id.navigation_dashboard -> {
-                    loadFragment(DashboardFragment())
-                    true
+                else -> {
+                    binding.bottomNavigation.visibility = android.view.View.VISIBLE
                 }
-                R.id.navigation_settings -> {
-                    loadFragment(SettingsFragment())
-                    true
-                }
-                else -> false
             }
         }
 
-        // Seleccionar el item guardado
-        binding.bottomNavigation.selectedItemId = currentNavigationId
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putInt("current_navigation", currentNavigationId)
-    }
-
-    private fun getFragmentForNavigation(navigationId: Int): Fragment {
-        return when (navigationId) {
-            R.id.navigation_dashboard -> DashboardFragment()
-            R.id.navigation_settings -> SettingsFragment()
-            else -> HomeFragment()
+        // Verificar si hay una sesión activa
+        if (sessionManager.isLoggedIn()) {
+            navController.navigate(R.id.action_loginFragment_to_homeFragment)
         }
-    }
-
-    private fun loadFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .commit()
     }
 }

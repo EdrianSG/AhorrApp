@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/navigation_home"
+        android:id="@+id/homeFragment"
         android:icon="@drawable/ic_home"
         android:title="Inicio" />
 
     <item
-        android:id="@+id/navigation_dashboard"
-        android:icon="@drawable/ic_dashboard"
+        android:id="@+id/summaryFragment"
+        android:icon="@drawable/ic_summary"
         android:title="Resumen" />
 
     <item
-        android:id="@+id/navigation_settings"
+        android:id="@+id/settingsFragment"
         android:icon="@drawable/ic_settings"
-        android:title="Ajustes" />
+        android:title="Configuración" />
 </menu> 
