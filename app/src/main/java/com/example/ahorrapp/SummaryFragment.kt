@@ -27,7 +27,8 @@ import com.github.mikephil.charting.utils.ColorTemplate
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class SummaryFragment : Fragment() {
-    private lateinit var pieChart: PieChart
+    private lateinit var pieChartGastos: PieChart
+    private lateinit var pieChartIngresos: PieChart
     private lateinit var totalIngresos: TextView
     private lateinit var totalGastos: TextView
     private lateinit var balanceTotal: TextView
@@ -75,16 +76,22 @@ class SummaryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        pieChart = view.findViewById(R.id.pieChart)
+        pieChartGastos = view.findViewById(R.id.pieChart)
+        pieChartIngresos = view.findViewById(R.id.pieChartIngresos)
         totalIngresos = view.findViewById(R.id.totalIngresos)
         totalGastos = view.findViewById(R.id.totalGastos)
         balanceTotal = view.findViewById(R.id.balanceTotal)
 
-        setupPieChart()
+        setupPieCharts()
         observeViewModel()
     }
 
-    private fun setupPieChart() {
+    private fun setupPieCharts() {
+        setupPieChart(pieChartGastos)
+        setupPieChart(pieChartIngresos)
+    }
+
+    private fun setupPieChart(pieChart: PieChart) {
         pieChart.apply {
             description.isEnabled = false
             isDrawHoleEnabled = true
@@ -109,7 +116,11 @@ class SummaryFragment : Fragment() {
         }
 
         viewModel.getCategoryTotals("GASTO").observe(viewLifecycleOwner) { categoryTotals ->
-            updatePieChart(categoryTotals)
+            updatePieChart(pieChartGastos, categoryTotals, "Gastos por Categoría")
+        }
+
+        viewModel.getCategoryTotals("INGRESO").observe(viewLifecycleOwner) { categoryTotals ->
+            updatePieChart(pieChartIngresos, categoryTotals, "Ingresos por Categoría")
         }
     }
 
@@ -120,7 +131,11 @@ class SummaryFragment : Fragment() {
         balanceTotal.text = CurrencyUtils.formatAmount(requireContext(), balance)
     }
 
-    private fun updatePieChart(categoryTotals: List<com.example.ahorrapp.data.model.CategoryTotal>) {
+    private fun updatePieChart(
+        pieChart: PieChart,
+        categoryTotals: List<com.example.ahorrapp.data.model.CategoryTotal>,
+        label: String
+    ) {
         if (categoryTotals.isEmpty()) {
             pieChart.setNoDataText("No hay datos disponibles")
             pieChart.invalidate()
@@ -131,7 +146,7 @@ class SummaryFragment : Fragment() {
             PieEntry(categoryTotal.total.toFloat(), categoryTotal.category)
         }
 
-        val dataSet = PieDataSet(entries, "Categorías").apply {
+        val dataSet = PieDataSet(entries, label).apply {
             colors = ColorTemplate.MATERIAL_COLORS.toList()
             valueTextSize = 14f
             valueTextColor = Color.WHITE
