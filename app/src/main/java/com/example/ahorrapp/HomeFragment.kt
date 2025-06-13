@@ -9,7 +9,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -17,13 +19,18 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.ahorrapp.adapter.CategoryAdapter
 import com.example.ahorrapp.data.AppDatabase
+import com.example.ahorrapp.data.model.Categories
 import com.example.ahorrapp.data.model.Transaction
+import com.example.ahorrapp.data.model.TransactionCategory
+import com.example.ahorrapp.data.model.TransactionType
 import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SessionManager
 import com.example.ahorrapp.viewmodel.TransactionViewModel
 import com.example.ahorrapp.viewmodel.TransactionViewModelFactory
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -36,6 +43,7 @@ class HomeFragment : Fragment() {
     private lateinit var balanceTextView: TextView
     private lateinit var ingresosTextView: TextView
     private lateinit var gastosTextView: TextView
+    private var selectedCategory: TransactionCategory? = null
 
     private val viewModel: TransactionViewModel by viewModels {
         TransactionViewModelFactory(
@@ -164,24 +172,66 @@ class HomeFragment : Fragment() {
         balanceTextView.text = CurrencyUtils.formatAmount(requireContext(), balance)
     }
 
+    private fun showCategorySelector(
+        dialogView: View,
+        currentType: TransactionType,
+        onCategorySelected: (TransactionCategory) -> Unit
+    ) {
+        val categories = Categories.getCategoriesByType(currentType)
+        val categoryAdapter = CategoryAdapter(categories) { category ->
+            selectedCategory = category
+            dialogView.findViewById<MaterialButton>(R.id.categoryButton).text = category.name
+            dialogView.findViewById<ImageView>(R.id.categoryIcon).setImageResource(category.iconResourceId)
+            onCategorySelected(category)
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Seleccionar Categoría")
+            .setAdapter(categoryAdapter) { dialog, which ->
+                val selectedCategory = categories[which]
+                dialogView.findViewById<MaterialButton>(R.id.categoryButton).text = selectedCategory.name
+                dialogView.findViewById<ImageView>(R.id.categoryIcon).setImageResource(selectedCategory.iconResourceId)
+                this.selectedCategory = selectedCategory
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
     private fun showAddTransactionDialog() {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_transaction, null)
-        
+        selectedCategory = null
+
+        val typeRadioGroup = dialogView.findViewById<RadioGroup>(R.id.typeRadioGroup)
+        val categoryButton = dialogView.findViewById<MaterialButton>(R.id.categoryButton)
+
+        typeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            val type = if (checkedId == R.id.incomeRadio) TransactionType.INGRESO else TransactionType.GASTO
+            selectedCategory = null
+            categoryButton.text = "Seleccionar Categoría"
+            dialogView.findViewById<ImageView>(R.id.categoryIcon).setImageDrawable(null)
+        }
+
+        categoryButton.setOnClickListener {
+            val type = if (dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked) 
+                TransactionType.INGRESO else TransactionType.GASTO
+            showCategorySelector(dialogView, type) { }
+        }
+
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Nueva Transacción")
             .setView(dialogView)
             .setPositiveButton("Guardar") { dialog, _ ->
                 val description = dialogView.findViewById<EditText>(R.id.descriptionInput).text.toString()
                 val amount = dialogView.findViewById<EditText>(R.id.amountInput).text.toString().toDoubleOrNull()
-                val category = dialogView.findViewById<EditText>(R.id.categoryInput).text.toString()
                 val isIncome = dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked
 
-                if (description.isNotEmpty() && amount != null && category.isNotEmpty()) {
+                if (description.isNotEmpty() && amount != null && selectedCategory != null) {
                     viewModel.addTransaction(
                         description = description,
                         amount = amount,
                         type = if (isIncome) "INGRESO" else "GASTO",
-                        category = category
+                        category = selectedCategory!!.name
                     )
                 } else {
                     Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -196,15 +246,37 @@ class HomeFragment : Fragment() {
 
     private fun showEditTransactionDialog(transaction: Transaction) {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_transaction, null)
-        
+        selectedCategory = Categories.getAllCategories().find { it.name == transaction.category }
+
         dialogView.findViewById<EditText>(R.id.descriptionInput).setText(transaction.description)
         dialogView.findViewById<EditText>(R.id.amountInput).setText(transaction.amount.toString())
-        dialogView.findViewById<EditText>(R.id.categoryInput).setText(transaction.category)
         
+        val categoryButton = dialogView.findViewById<MaterialButton>(R.id.categoryButton)
+        val categoryIcon = dialogView.findViewById<ImageView>(R.id.categoryIcon)
+        
+        selectedCategory?.let {
+            categoryButton.text = it.name
+            categoryIcon.setImageResource(it.iconResourceId)
+        }
+
+        val typeRadioGroup = dialogView.findViewById<RadioGroup>(R.id.typeRadioGroup)
         if (transaction.type == "INGRESO") {
             dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked = true
         } else {
             dialogView.findViewById<RadioButton>(R.id.expenseRadio).isChecked = true
+        }
+
+        typeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            val type = if (checkedId == R.id.incomeRadio) TransactionType.INGRESO else TransactionType.GASTO
+            selectedCategory = null
+            categoryButton.text = "Seleccionar Categoría"
+            categoryIcon.setImageDrawable(null)
+        }
+
+        categoryButton.setOnClickListener {
+            val type = if (dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked) 
+                TransactionType.INGRESO else TransactionType.GASTO
+            showCategorySelector(dialogView, type) { }
         }
 
         MaterialAlertDialogBuilder(requireContext())
@@ -213,15 +285,14 @@ class HomeFragment : Fragment() {
             .setPositiveButton("Guardar") { dialog, _ ->
                 val description = dialogView.findViewById<EditText>(R.id.descriptionInput).text.toString()
                 val amount = dialogView.findViewById<EditText>(R.id.amountInput).text.toString().toDoubleOrNull()
-                val category = dialogView.findViewById<EditText>(R.id.categoryInput).text.toString()
                 val isIncome = dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked
 
-                if (description.isNotEmpty() && amount != null && category.isNotEmpty()) {
+                if (description.isNotEmpty() && amount != null && selectedCategory != null) {
                     val updatedTransaction = transaction.copy(
                         description = description,
                         amount = amount,
                         type = if (isIncome) "INGRESO" else "GASTO",
-                        category = category
+                        category = selectedCategory!!.name
                     )
                     viewModel.updateTransaction(updatedTransaction)
                 } else {

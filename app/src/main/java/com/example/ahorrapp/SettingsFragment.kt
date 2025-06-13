@@ -71,10 +71,10 @@ class SettingsFragment : Fragment() {
         val userId = sessionManager.getUserId()
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val userDao = AppDatabase.getDatabase(requireContext()).userDao()
-                val user = userDao.getUserById(userId)
-                user?.let {
-                    userNameText.text = it.username
+            val userDao = AppDatabase.getDatabase(requireContext()).userDao()
+            val user = userDao.getUserById(userId)
+            user?.let {
+                userNameText.text = it.username
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Error al cargar datos del usuario", Toast.LENGTH_SHORT).show()
