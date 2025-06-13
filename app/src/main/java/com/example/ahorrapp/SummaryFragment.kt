@@ -1,5 +1,9 @@
 package com.example.ahorrapp
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -20,12 +24,13 @@ import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.PercentFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class SummaryFragment : Fragment() {
     private lateinit var pieChart: PieChart
-    private lateinit var balanceTotal: TextView
     private lateinit var totalIngresos: TextView
     private lateinit var totalGastos: TextView
+    private lateinit var balanceTotal: TextView
     private lateinit var sessionManager: SessionManager
 
     private val viewModel: TransactionViewModel by viewModels {
@@ -35,9 +40,28 @@ class SummaryFragment : Fragment() {
         )
     }
 
+    private val currencyChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.example.ahorrapp.CURRENCY_CHANGED") {
+                viewModel.updateTotals()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sessionManager = SessionManager(requireContext())
+
+        // Registrar el receptor de cambios de moneda
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(currencyChangeReceiver, IntentFilter("com.example.ahorrapp.CURRENCY_CHANGED"))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Desregistrar el receptor de cambios de moneda
+        LocalBroadcastManager.getInstance(requireContext())
+            .unregisterReceiver(currencyChangeReceiver)
     }
 
     override fun onCreateView(
@@ -51,11 +75,10 @@ class SummaryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Inicializar vistas
         pieChart = view.findViewById(R.id.pieChart)
-        balanceTotal = view.findViewById(R.id.balanceTotal)
         totalIngresos = view.findViewById(R.id.totalIngresos)
         totalGastos = view.findViewById(R.id.totalGastos)
+        balanceTotal = view.findViewById(R.id.balanceTotal)
 
         setupPieChart()
         observeViewModel()
@@ -65,17 +88,12 @@ class SummaryFragment : Fragment() {
         pieChart.apply {
             description.isEnabled = false
             isDrawHoleEnabled = true
-            setHoleColor(Color.WHITE)
-            setTransparentCircleColor(Color.WHITE)
-            setTransparentCircleAlpha(110)
+            setHoleColor(android.R.color.transparent)
             holeRadius = 58f
-            transparentCircleRadius = 61f
-            setDrawCenterText(true)
-            rotationAngle = 0f
-            isRotationEnabled = true
-            isHighlightPerTapEnabled = true
-            setUsePercentValues(true)
+            setDrawEntryLabels(true)
             legend.isEnabled = true
+            setEntryLabelTextSize(12f)
+            setUsePercentValues(true)
         }
     }
 
@@ -118,11 +136,14 @@ class SummaryFragment : Fragment() {
             valueTextSize = 14f
             valueTextColor = Color.WHITE
             valueFormatter = PercentFormatter(pieChart)
+            yValuePosition = PieDataSet.ValuePosition.INSIDE_SLICE
+            sliceSpace = 3f
         }
 
         val pieData = PieData(dataSet).apply {
             setValueTextSize(14f)
             setValueTextColor(Color.WHITE)
+            setValueFormatter(PercentFormatter(pieChart))
         }
 
         pieChart.data = pieData

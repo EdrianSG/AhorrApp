@@ -1,5 +1,9 @@
 package com.example.ahorrapp
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -22,6 +26,7 @@ import com.example.ahorrapp.viewmodel.TransactionViewModel
 import com.example.ahorrapp.viewmodel.TransactionViewModelFactory
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class HomeFragment : Fragment() {
 
@@ -39,6 +44,14 @@ class HomeFragment : Fragment() {
         )
     }
 
+    private val currencyChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.example.ahorrapp.CURRENCY_CHANGED") {
+                refreshData()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sessionManager = SessionManager(requireContext())
@@ -48,6 +61,17 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
             return
         }
+
+        // Registrar el receptor de cambios de moneda
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(currencyChangeReceiver, IntentFilter("com.example.ahorrapp.CURRENCY_CHANGED"))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Desregistrar el receptor de cambios de moneda
+        LocalBroadcastManager.getInstance(requireContext())
+            .unregisterReceiver(currencyChangeReceiver)
     }
 
     override fun onCreateView(

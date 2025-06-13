@@ -72,4 +72,10 @@ class TransactionRepository(private val transactionDao: TransactionDao) {
             }
         }
     }
+
+    suspend fun getTransactionsByDateRange(userId: Long, startTimestamp: Long, endTimestamp: Long): List<Transaction> {
+        return withContext(Dispatchers.IO) {
+            transactionDao.getTransactionsByDateRange(userId, startTimestamp, endTimestamp)
+        }
+    }
 } 

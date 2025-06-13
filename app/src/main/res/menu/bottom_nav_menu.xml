@@ -6,6 +6,11 @@
         android:title="Inicio" />
 
     <item
+        android:id="@+id/calendarFragment"
+        android:icon="@drawable/ic_calendar"
+        android:title="Calendario" />
+
+    <item
         android:id="@+id/summaryFragment"
         android:icon="@drawable/ic_summary"
         android:title="Resumen" />

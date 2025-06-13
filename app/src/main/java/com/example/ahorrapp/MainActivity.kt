@@ -6,23 +6,32 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.ahorrapp.databinding.ActivityMainBinding
 import com.example.ahorrapp.utils.SessionManager
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var sessionManager: SessionManager
+    
+    @Inject
+    lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        sessionManager = SessionManager(this)
-
         // Configurar el NavController
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
+
+        // Verificar si hay una sesión activa
+        if (!sessionManager.isLoggedIn()) {
+            // Si no hay sesión, navegar al login
+            navController.navigate(R.id.loginFragment)
+        }
 
         // Configurar la navegación inferior
         binding.bottomNavigation.setupWithNavController(navController)
@@ -39,9 +48,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Verificar si hay una sesión activa
-        if (sessionManager.isLoggedIn()) {
-            navController.navigate(R.id.action_loginFragment_to_homeFragment)
+        // Prevenir navegación al login si ya hay sesión activa
+        navController.addOnDestinationChangedListener { controller, destination, _ ->
+            if (sessionManager.isLoggedIn() && 
+                (destination.id == R.id.loginFragment || destination.id == R.id.registerFragment)) {
+                controller.navigateUp()
+            }
         }
     }
 }

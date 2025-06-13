@@ -2,8 +2,14 @@ package com.example.ahorrapp.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class SessionManager(context: Context) {
+@Singleton
+class SessionManager @Inject constructor(
+    @ApplicationContext context: Context
+) {
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences(
         PREF_NAME,
         Context.MODE_PRIVATE

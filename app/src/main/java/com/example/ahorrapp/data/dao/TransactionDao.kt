@@ -43,4 +43,11 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE userId = :userId")
     suspend fun deleteAllTransactionsByUser(userId: Long)
+
+    @Query("""
+        SELECT * FROM transactions 
+        WHERE userId = :userId AND date >= :startTimestamp AND date <= :endTimestamp 
+        ORDER BY date DESC
+    """)
+    suspend fun getTransactionsByDateRange(userId: Long, startTimestamp: Long, endTimestamp: Long): List<Transaction>
 } 

@@ -24,6 +24,8 @@ import com.google.android.material.snackbar.Snackbar
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.example.ahorrapp.data.AppDatabase
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import android.content.Intent
 
 class SettingsFragment : Fragment() {
     private lateinit var currencySpinner: Spinner
@@ -63,18 +65,19 @@ class SettingsFragment : Fragment() {
 
         // Cargar preferencias guardadas
         loadSavedPreferences()
-
-        // Retener la instancia del fragmento
-        retainInstance = true
     }
 
     private fun loadUserData() {
         val userId = sessionManager.getUserId()
         viewLifecycleOwner.lifecycleScope.launch {
-            val userDao = AppDatabase.getDatabase(requireContext()).userDao()
-            val user = userDao.getUserById(userId)
-            user?.let {
-                userNameText.text = it.username
+            try {
+                val userDao = AppDatabase.getDatabase(requireContext()).userDao()
+                val user = userDao.getUserById(userId)
+                user?.let {
+                    userNameText.text = it.username
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error al cargar datos del usuario", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -115,8 +118,9 @@ class SettingsFragment : Fragment() {
             val currencies = resources.getStringArray(R.array.currencies_values)
             savePreference("currency", currencies[position])
             
-            // Notificar al HomeFragment que debe actualizarse
-            notifyHomeFragmentToUpdate()
+            // Notificar el cambio de moneda
+            LocalBroadcastManager.getInstance(requireContext())
+                .sendBroadcast(Intent("com.example.ahorrapp.CURRENCY_CHANGED"))
         }
     }
 
@@ -193,15 +197,6 @@ class SettingsFragment : Fragment() {
             .edit()
             .putString(key, value)
             .apply()
-    }
-
-    private fun notifyHomeFragmentToUpdate() {
-        // Buscar el HomeFragment y notificarle que debe actualizarse
-        parentFragmentManager.fragments.forEach { fragment ->
-            if (fragment is HomeFragment) {
-                fragment.refreshData()
-            }
-        }
     }
 
     private fun Spinner.setOnItemSelectedListener(onItemSelected: (Int) -> Unit) {
