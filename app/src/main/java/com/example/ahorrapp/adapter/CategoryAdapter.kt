@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.example.ahorrapp.R
 import com.example.ahorrapp.data.model.TransactionCategory
 
@@ -13,6 +14,8 @@ class CategoryAdapter(
     private val categories: List<TransactionCategory>,
     private val onCategorySelected: (TransactionCategory) -> Unit
 ) : BaseAdapter() {
+
+    private var selectedPosition: Int = -1
 
     override fun getCount(): Int = categories.size
 
@@ -27,7 +30,19 @@ class CategoryAdapter(
         val category = getItem(position)
         view.findViewById<ImageView>(R.id.categoryIcon).setImageResource(category.iconResourceId)
         view.findViewById<TextView>(R.id.categoryName).text = category.name
-        view.setOnClickListener { onCategorySelected(category) }
+
+        // Aplicar el estado de selección
+        if (position == selectedPosition) {
+            view.setBackgroundColor(ContextCompat.getColor(parent.context, R.color.selected_category_background))
+        } else {
+            view.setBackgroundColor(ContextCompat.getColor(parent.context, android.R.color.transparent))
+        }
+
+        view.setOnClickListener { 
+            selectedPosition = position
+            notifyDataSetChanged()
+            onCategorySelected(category)
+        }
 
         return view
     }

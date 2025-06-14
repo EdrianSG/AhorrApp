@@ -178,20 +178,23 @@ class HomeFragment : Fragment() {
         onCategorySelected: (TransactionCategory) -> Unit
     ) {
         val categories = Categories.getCategoriesByType(currentType)
+        var tempSelectedCategory: TransactionCategory? = null
         val categoryAdapter = CategoryAdapter(categories) { category ->
-            selectedCategory = category
-            dialogView.findViewById<MaterialButton>(R.id.categoryButton).text = category.name
-            dialogView.findViewById<ImageView>(R.id.categoryIcon).setImageResource(category.iconResourceId)
-            onCategorySelected(category)
+            tempSelectedCategory = category
         }
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Seleccionar Categoría")
-            .setAdapter(categoryAdapter) { dialog, which ->
-                val selectedCategory = categories[which]
-                dialogView.findViewById<MaterialButton>(R.id.categoryButton).text = selectedCategory.name
-                dialogView.findViewById<ImageView>(R.id.categoryIcon).setImageResource(selectedCategory.iconResourceId)
-                this.selectedCategory = selectedCategory
+            .setAdapter(categoryAdapter) { _, which ->
+                tempSelectedCategory = categories[which]
+            }
+            .setPositiveButton("Aceptar") { dialog, _ ->
+                tempSelectedCategory?.let { category ->
+                    selectedCategory = category
+                    dialogView.findViewById<MaterialButton>(R.id.categoryButton).text = category.name
+                    dialogView.findViewById<ImageView>(R.id.categoryIcon).setImageResource(category.iconResourceId)
+                    onCategorySelected(category)
+                }
                 dialog.dismiss()
             }
             .setNegativeButton("Cancelar", null)
