@@ -21,16 +21,25 @@ class SessionManager @Inject constructor(
             putString(KEY_EMAIL, email)
             putString(KEY_USERNAME, username)
             putBoolean(KEY_IS_LOGGED_IN, true)
-            apply()
+            commit()
         }
     }
 
     fun clearSession() {
-        sharedPreferences.edit().clear().apply()
+        sharedPreferences.edit().apply {
+            remove(KEY_USER_ID)
+            remove(KEY_EMAIL)
+            remove(KEY_USERNAME)
+            putBoolean(KEY_IS_LOGGED_IN, false)
+            commit()
+        }
     }
 
     fun isLoggedIn(): Boolean {
-        return sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false)
+        return sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false) &&
+               getUserId() != -1L &&
+               !getEmail().isNullOrEmpty() &&
+               !getUsername().isNullOrEmpty()
     }
 
     fun getUserId(): Long {

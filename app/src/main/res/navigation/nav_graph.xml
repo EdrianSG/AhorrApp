@@ -2,7 +2,44 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/homeFragment">
+    app:startDestination="@id/loginFragment">
+
+    <fragment
+        android:id="@+id/navigation_home"
+        android:name="com.example.ahorrapp.HomeFragment"
+        android:label="Inicio">
+        <action
+            android:id="@+id/action_homeFragment_to_loginFragment"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_summary"
+        android:name="com.example.ahorrapp.SummaryFragment"
+        android:label="Resumen" />
+
+    <fragment
+        android:id="@+id/navigation_calendar"
+        android:name="com.example.ahorrapp.ui.calendar.CalendarFragment"
+        android:label="Calendario" />
+
+    <fragment
+        android:id="@+id/navigation_scheduled"
+        android:name="com.example.ahorrapp.ui.scheduled.ScheduledPaymentsFragment"
+        android:label="Pagos Programados" />
+
+    <fragment
+        android:id="@+id/navigation_settings"
+        android:name="com.example.ahorrapp.SettingsFragment"
+        android:label="Ajustes">
+        <action
+            android:id="@+id/action_settingsFragment_to_loginFragment"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
 
     <fragment
         android:id="@+id/loginFragment"
@@ -13,8 +50,8 @@
             app:destination="@id/registerFragment" />
         <action
             android:id="@+id/action_loginFragment_to_homeFragment"
-            app:destination="@id/homeFragment"
-            app:popUpTo="@id/loginFragment"
+            app:destination="@id/navigation_home"
+            app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true" />
     </fragment>
 
@@ -23,50 +60,8 @@
         android:name="com.example.ahorrapp.ui.auth.RegisterFragment"
         android:label="Registro">
         <action
-            android:id="@+id/action_registerFragment_to_homeFragment"
-            app:destination="@id/homeFragment"
-            app:popUpTo="@id/loginFragment"
-            app:popUpToInclusive="true" />
-        <action
             android:id="@+id/action_registerFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
     </fragment>
-
-    <fragment
-        android:id="@+id/homeFragment"
-        android:name="com.example.ahorrapp.HomeFragment"
-        android:label="Inicio">
-        <action
-            android:id="@+id/action_homeFragment_to_loginFragment"
-            app:destination="@id/loginFragment"
-            app:popUpTo="@id/homeFragment"
-            app:popUpToInclusive="true" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/dashboardFragment"
-        android:name="com.example.ahorrapp.DashboardFragment"
-        android:label="Dashboard" />
-
-    <fragment
-        android:id="@+id/settingsFragment"
-        android:name="com.example.ahorrapp.SettingsFragment"
-        android:label="Configuración">
-        <action
-            android:id="@+id/action_settingsFragment_to_loginFragment"
-            app:destination="@id/loginFragment"
-            app:popUpTo="@id/settingsFragment"
-            app:popUpToInclusive="true" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/summaryFragment"
-        android:name="com.example.ahorrapp.SummaryFragment"
-        android:label="Resumen" />
-
-    <fragment
-        android:id="@+id/calendarFragment"
-        android:name="com.example.ahorrapp.ui.calendar.CalendarFragment"
-        android:label="Calendario" />
 
 </navigation> 

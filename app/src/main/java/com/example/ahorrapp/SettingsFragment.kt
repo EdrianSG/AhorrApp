@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import com.example.ahorrapp.data.AppDatabase
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.content.Intent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class SettingsFragment : Fragment() {
     private lateinit var currencySpinner: Spinner
@@ -34,7 +36,6 @@ class SettingsFragment : Fragment() {
     private lateinit var logoutButton: MaterialButton
     private lateinit var userNameText: TextView
     private lateinit var sessionManager: SessionManager
-    private var isThemeChanging = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,13 +72,19 @@ class SettingsFragment : Fragment() {
         val userId = sessionManager.getUserId()
         viewLifecycleOwner.lifecycleScope.launch {
             try {
+                withContext(Dispatchers.IO) {
             val userDao = AppDatabase.getDatabase(requireContext()).userDao()
             val user = userDao.getUserById(userId)
+                    withContext(Dispatchers.Main) {
             user?.let {
                 userNameText.text = it.username
+                        }
+                    }
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error al cargar datos del usuario", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error al cargar datos del usuario", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -142,29 +149,34 @@ class SettingsFragment : Fragment() {
 
     private fun setupThemeSelection() {
         themeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
-            if (!isThemeChanging) {
-                isThemeChanging = true
                 when (checkedId) {
-                    R.id.lightThemeRadio -> setTheme(AppCompatDelegate.MODE_NIGHT_NO)
-                    R.id.darkThemeRadio -> setTheme(AppCompatDelegate.MODE_NIGHT_YES)
-                    R.id.systemThemeRadio -> setTheme(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-                }
+                R.id.lightThemeRadio -> applyTheme(AppCompatDelegate.MODE_NIGHT_NO)
+                R.id.darkThemeRadio -> applyTheme(AppCompatDelegate.MODE_NIGHT_YES)
+                R.id.systemThemeRadio -> applyTheme(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
             }
         }
     }
 
-    private fun setTheme(mode: Int) {
+    private fun applyTheme(mode: Int) {
         try {
+            val currentMode = AppCompatDelegate.getDefaultNightMode()
+            if (currentMode != mode) {
             savePreference("theme_mode", mode.toString())
+                
+                // Aplicar el tema después de un breve retraso para permitir que se guarde la preferencia
+                view?.postDelayed({
             AppCompatDelegate.setDefaultNightMode(mode)
+                    // No es necesario recrear la actividad, Android lo hará automáticamente
+                }, 100)
+            }
         } catch (e: Exception) {
+            view?.let {
             Snackbar.make(
-                requireView(),
+                    it,
                 "Error al cambiar el tema: ${e.message}",
                 Snackbar.LENGTH_LONG
             ).show()
-        } finally {
-            isThemeChanging = false
+            }
         }
     }
 
@@ -174,16 +186,22 @@ class SettingsFragment : Fragment() {
         // Cargar moneda
         val savedCurrency = prefs.getString("currency", "USD")
         val currencyValues = resources.getStringArray(R.array.currencies_values)
-        currencySpinner.setSelection(currencyValues.indexOf(savedCurrency))
+        val currencyIndex = currencyValues.indexOf(savedCurrency)
+        if (currencyIndex >= 0) {
+            currencySpinner.setSelection(currencyIndex)
+        }
 
         // Cargar idioma
         val savedLanguage = prefs.getString("language", "es")
         val languageValues = resources.getStringArray(R.array.languages_values)
-        languageSpinner.setSelection(languageValues.indexOf(savedLanguage))
+        val languageIndex = languageValues.indexOf(savedLanguage)
+        if (languageIndex >= 0) {
+            languageSpinner.setSelection(languageIndex)
+        }
 
         // Cargar tema
         val savedThemeMode = prefs.getString("theme_mode", 
-            AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM.toString())?.toInt()
+            AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM.toString())?.toIntOrNull()
         val radioButtonId = when (savedThemeMode) {
             AppCompatDelegate.MODE_NIGHT_NO -> R.id.lightThemeRadio
             AppCompatDelegate.MODE_NIGHT_YES -> R.id.darkThemeRadio

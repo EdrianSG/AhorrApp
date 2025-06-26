@@ -7,14 +7,16 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.ahorrapp.data.converter.DateConverter
+import com.example.ahorrapp.data.dao.ScheduledPaymentDao
 import com.example.ahorrapp.data.dao.TransactionDao
 import com.example.ahorrapp.data.dao.UserDao
+import com.example.ahorrapp.data.model.ScheduledPayment
 import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.model.User
-import com.example.ahorrapp.utils.DateConverter
 
 @Database(
-    entities = [User::class, Transaction::class],
+    entities = [User::class, Transaction::class, ScheduledPayment::class],
     version = 2,
     exportSchema = false
 )
@@ -22,6 +24,7 @@ import com.example.ahorrapp.utils.DateConverter
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun transactionDao(): TransactionDao
+    abstract fun scheduledPaymentDao(): ScheduledPaymentDao
 
     companion object {
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -54,6 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "ahorrapp_database"
                 )
                 .addMigrations(MIGRATION_1_2)
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance

@@ -8,8 +8,13 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.ahorrapp.data.AppDatabase
+import com.example.ahorrapp.data.model.RepeatInterval
+import com.example.ahorrapp.data.repository.ScheduledPaymentRepository
 import com.example.ahorrapp.databinding.FragmentCalendarBinding
 import com.example.ahorrapp.utils.SessionManager
+import com.example.ahorrapp.viewmodel.ScheduledPaymentViewModel
+import com.example.ahorrapp.viewmodel.ScheduledPaymentViewModelFactory
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.*
 import javax.inject.Inject
@@ -18,7 +23,14 @@ import javax.inject.Inject
 class CalendarFragment : Fragment() {
     private var _binding: FragmentCalendarBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: CalendarViewModel by viewModels()
+    private val calendarViewModel: CalendarViewModel by viewModels()
+    private val scheduledPaymentViewModel: ScheduledPaymentViewModel by viewModels {
+        ScheduledPaymentViewModelFactory(
+            ScheduledPaymentRepository(AppDatabase.getDatabase(requireContext()).scheduledPaymentDao()),
+            sessionManager.getUserId(),
+            requireContext()
+        )
+    }
     private lateinit var transactionsAdapter: TransactionsAdapter
     
     @Inject
@@ -43,7 +55,7 @@ class CalendarFragment : Fragment() {
             // Cargar las transacciones del día actual
             if (sessionManager.isLoggedIn()) {
                 val calendar = Calendar.getInstance()
-                viewModel.loadTransactionsForDate(sessionManager.getUserId(), calendar.timeInMillis)
+                calendarViewModel.loadTransactionsForDate(sessionManager.getUserId(), calendar.timeInMillis)
             }
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Error al inicializar el calendario: ${e.message}", Toast.LENGTH_LONG).show()
@@ -66,7 +78,7 @@ class CalendarFragment : Fragment() {
                 
                 if (sessionManager.isLoggedIn()) {
                     val userId = sessionManager.getUserId()
-                    viewModel.loadTransactionsForDate(userId, calendar.timeInMillis)
+                    calendarViewModel.loadTransactionsForDate(userId, calendar.timeInMillis)
                 } else {
                     Toast.makeText(requireContext(), "Por favor, inicia sesión", Toast.LENGTH_SHORT).show()
                 }
@@ -77,7 +89,7 @@ class CalendarFragment : Fragment() {
     }
 
     private fun observeTransactions() {
-        viewModel.transactions.observe(viewLifecycleOwner) { transactions ->
+        calendarViewModel.transactions.observe(viewLifecycleOwner) { transactions ->
             try {
                 transactionsAdapter.updateTransactions(transactions ?: emptyList())
             } catch (e: Exception) {

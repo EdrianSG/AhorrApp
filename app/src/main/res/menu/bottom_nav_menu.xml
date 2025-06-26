@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/homeFragment"
+        android:id="@+id/navigation_home"
         android:icon="@drawable/ic_home"
         android:title="Inicio" />
 
     <item
-        android:id="@+id/calendarFragment"
-        android:icon="@drawable/ic_calendar"
-        android:title="Calendario" />
-
-    <item
-        android:id="@+id/summaryFragment"
+        android:id="@+id/navigation_summary"
         android:icon="@drawable/ic_summary"
         android:title="Resumen" />
 
     <item
-        android:id="@+id/settingsFragment"
+        android:id="@+id/navigation_calendar"
+        android:icon="@drawable/ic_calendar"
+        android:title="Calendario" />
+
+    <item
+        android:id="@+id/navigation_scheduled"
+        android:icon="@drawable/ic_scheduled"
+        android:title="Programados" />
+
+    <item
+        android:id="@+id/navigation_settings"
         android:icon="@drawable/ic_settings"
-        android:title="Configuración" />
+        android:title="Ajustes" />
 </menu> 

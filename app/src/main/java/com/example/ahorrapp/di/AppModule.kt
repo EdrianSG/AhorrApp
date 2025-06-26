@@ -1,10 +1,15 @@
 package com.example.ahorrapp.di
 
 import android.content.Context
-import androidx.room.Room
 import com.example.ahorrapp.data.AppDatabase
+import com.example.ahorrapp.data.dao.ScheduledPaymentDao
 import com.example.ahorrapp.data.dao.TransactionDao
+import com.example.ahorrapp.data.dao.UserDao
+import com.example.ahorrapp.data.repository.ScheduledPaymentRepository
 import com.example.ahorrapp.data.repository.TransactionRepository
+import com.example.ahorrapp.data.repository.UserRepository
+import com.example.ahorrapp.service.NotificationService
+import com.example.ahorrapp.utils.SessionManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,14 +21,15 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    @Provides
     @Singleton
+    @Provides
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "ahorrapp_database"
-        ).build()
+        return AppDatabase.getDatabase(context)
+    }
+
+    @Provides
+    fun provideUserDao(database: AppDatabase): UserDao {
+        return database.userDao()
     }
 
     @Provides
@@ -32,8 +38,42 @@ object AppModule {
     }
 
     @Provides
+    fun provideScheduledPaymentDao(database: AppDatabase): ScheduledPaymentDao {
+        return database.scheduledPaymentDao()
+    }
+
     @Singleton
+    @Provides
+    fun provideUserRepository(userDao: UserDao): UserRepository {
+        return UserRepository(userDao)
+    }
+
+    @Singleton
+    @Provides
     fun provideTransactionRepository(transactionDao: TransactionDao): TransactionRepository {
         return TransactionRepository(transactionDao)
+    }
+
+    @Singleton
+    @Provides
+    fun provideScheduledPaymentRepository(scheduledPaymentDao: ScheduledPaymentDao): ScheduledPaymentRepository {
+        return ScheduledPaymentRepository(scheduledPaymentDao)
+    }
+
+    @Singleton
+    @Provides
+    fun provideSessionManager(@ApplicationContext context: Context): SessionManager {
+        return SessionManager(context)
+    }
+
+    @Singleton
+    @Provides
+    fun provideNotificationService(@ApplicationContext context: Context): NotificationService {
+        return NotificationService(context)
+    }
+
+    @Provides
+    fun provideUserId(sessionManager: SessionManager): Long {
+        return sessionManager.getUserId()
     }
 } 

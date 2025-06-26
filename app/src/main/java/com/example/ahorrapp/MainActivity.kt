@@ -8,30 +8,45 @@ import com.example.ahorrapp.databinding.ActivityMainBinding
 import com.example.ahorrapp.utils.SessionManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import androidx.appcompat.app.AppCompatDelegate
+import android.content.Context
+import androidx.navigation.NavController
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var navController: NavController
     
     @Inject
     lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Aplicar el tema antes de setContentView
+        applyTheme()
+        
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupNavigation()
+    }
+
+    private fun setupNavigation() {
         // Configurar el NavController
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
+        navController = navHostFragment.navController
 
-        // Verificar si hay una sesión activa
-        if (!sessionManager.isLoggedIn()) {
-            // Si no hay sesión, navegar al login
-            navController.navigate(R.id.loginFragment)
-        }
+        // Configurar el destino inicial basado en el estado de la sesión
+        val navGraph = navController.navInflater.inflate(R.navigation.nav_graph)
+        navGraph.setStartDestination(
+            if (sessionManager.isLoggedIn()) R.id.navigation_home
+            else R.id.loginFragment
+        )
+        navController.graph = navGraph
 
         // Configurar la navegación inferior
         binding.bottomNavigation.setupWithNavController(navController)
@@ -55,5 +70,21 @@ class MainActivity : AppCompatActivity() {
                 controller.navigateUp()
             }
         }
+    }
+
+    private fun applyTheme() {
+        val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val savedThemeMode = prefs.getString("theme_mode", 
+            AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM.toString())?.toIntOrNull()
+            ?: AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            
+        if (AppCompatDelegate.getDefaultNightMode() != savedThemeMode) {
+            AppCompatDelegate.setDefaultNightMode(savedThemeMode)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // No es necesario hacer nada aquí, Android manejará el cambio de configuración
     }
 }

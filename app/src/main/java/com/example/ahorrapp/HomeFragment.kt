@@ -220,7 +220,7 @@ class HomeFragment : Fragment() {
                 TransactionType.INGRESO else TransactionType.GASTO
             showCategorySelector(dialogView, type) { }
         }
-
+        
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Nueva Transacción")
             .setView(dialogView)
@@ -250,7 +250,7 @@ class HomeFragment : Fragment() {
     private fun showEditTransactionDialog(transaction: Transaction) {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_transaction, null)
         selectedCategory = Categories.getAllCategories().find { it.name == transaction.category }
-
+        
         dialogView.findViewById<EditText>(R.id.descriptionInput).setText(transaction.description)
         dialogView.findViewById<EditText>(R.id.amountInput).setText(transaction.amount.toString())
         
