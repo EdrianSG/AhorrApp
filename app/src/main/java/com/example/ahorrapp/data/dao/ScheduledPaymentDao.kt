@@ -25,6 +25,6 @@ interface ScheduledPaymentDao {
     @Update
     suspend fun update(payment: ScheduledPayment)
 
-    @Query("UPDATE scheduled_payments SET isActive = 0 WHERE id = :paymentId")
+    @Query("DELETE FROM scheduled_payments WHERE id = :paymentId")
     suspend fun delete(paymentId: Long)
 } 

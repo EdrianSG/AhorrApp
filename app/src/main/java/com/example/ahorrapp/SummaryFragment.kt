@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.ahorrapp.data.AppDatabase
 import com.example.ahorrapp.data.repository.TransactionRepository
+import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SessionManager
 import com.example.ahorrapp.viewmodel.TransactionViewModel
@@ -37,6 +38,7 @@ class SummaryFragment : Fragment() {
     private val viewModel: TransactionViewModel by viewModels {
         TransactionViewModelFactory(
             TransactionRepository(AppDatabase.getDatabase(requireContext()).transactionDao()),
+            CategoryLimitRepository(AppDatabase.getDatabase(requireContext()).categoryLimitDao()),
             sessionManager.getUserId()
         )
     }

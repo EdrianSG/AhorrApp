@@ -16,7 +16,7 @@
         android:padding="16dp">
 
         <TextView
-            android:id="@+id/titleText"
+            android:id="@+id/categoryText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:textSize="18sp"
@@ -24,31 +24,18 @@
             app:layout_constraintEnd_toStartOf="@id/actionsLayout"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:text="Pago de alquiler" />
+            tools:text="Comida" />
 
         <TextView
-            android:id="@+id/descriptionText"
+            android:id="@+id/periodText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textSize="14sp"
             app:layout_constraintEnd_toStartOf="@id/actionsLayout"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/titleText"
-            tools:text="Pago mensual del alquiler" />
-
-        <TextView
-            android:id="@+id/amountText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toStartOf="@id/actionsLayout"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/descriptionText"
-            tools:text="800,00 €"
-            tools:textColor="@android:color/holo_red_dark" />
+            app:layout_constraintTop_toBottomOf="@id/categoryText"
+            tools:text="01/01/2024 - 31/01/2024" />
 
         <LinearLayout
             android:id="@+id/actionsLayout"
@@ -63,7 +50,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Editar pago programado"
+                android:contentDescription="Editar límite"
                 android:padding="8dp"
                 android:src="@drawable/ic_edit"
                 app:tint="?attr/colorPrimary" />
@@ -73,39 +60,64 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Eliminar pago programado"
+                android:contentDescription="Eliminar límite"
                 android:padding="8dp"
                 android:src="@drawable/ic_delete"
                 app:tint="@android:color/holo_red_dark" />
 
         </LinearLayout>
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroup"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/amountText">
+            app:layout_constraintTop_toBottomOf="@id/periodText">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/repeatIntervalChip"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/spentAmountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="$450.00" />
+
+                <TextView
+                    android:id="@+id/limitAmountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="/ $500.00" />
+
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:trackCornerRadius="8dp"
+                tools:progress="90" />
+
+            <TextView
+                android:id="@+id/progressText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="12sp"
-                app:chipMinHeight="32dp"
-                tools:text="Mensual" />
+                tools:text="90% gastado - $50.00 restante" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/nextPaymentChip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="12sp"
-                app:chipMinHeight="32dp"
-                tools:text="Próximo: 01/05/2024" />
-
-        </com.google.android.material.chip.ChipGroup>
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

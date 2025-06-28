@@ -26,6 +26,7 @@ import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.model.TransactionCategory
 import com.example.ahorrapp.data.model.TransactionType
 import com.example.ahorrapp.data.repository.TransactionRepository
+import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SessionManager
 import com.example.ahorrapp.viewmodel.TransactionViewModel
@@ -48,6 +49,7 @@ class HomeFragment : Fragment() {
     private val viewModel: TransactionViewModel by viewModels {
         TransactionViewModelFactory(
             TransactionRepository(AppDatabase.getDatabase(requireContext()).transactionDao()),
+            CategoryLimitRepository(AppDatabase.getDatabase(requireContext()).categoryLimitDao()),
             sessionManager.getUserId()
         )
     }

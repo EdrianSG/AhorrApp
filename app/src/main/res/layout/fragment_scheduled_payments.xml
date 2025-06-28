@@ -5,70 +5,192 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="16dp">
+        android:layout_height="match_parent">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/filterCard"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="4dp"
-            app:layout_constraintTop_toTopOf="parent">
+            android:orientation="vertical"
+            android:padding="16dp">
 
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/filterChipGroup"
+            <!-- Sección de Pagos Programados -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
-                app:singleSelection="true">
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="4dp">
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/allChip"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Todos"
-                    android:checked="true" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/activeChip"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pagos Programados"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/paymentsFilterChipGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/paymentsAllChip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Todos"
+                            android:checked="true" />
+
+                    </com.google.android.material.chip.ChipGroup>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/scheduledPaymentsList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:nestedScrollingEnabled="false"
+                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+                    <TextView
+                        android:id="@+id/paymentsEmptyView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="16dp"
+                        android:text="No hay pagos programados"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Sección de Metas de Ahorro -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Activos" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/inactiveChip"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Metas de Ahorro"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/savingsGoalsList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+                    <TextView
+                        android:id="@+id/savingsEmptyView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="16dp"
+                        android:text="No hay metas de ahorro"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Sección de Límites de Categoría -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Inactivos" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            </com.google.android.material.chip.ChipGroup>
-        </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Límites de Gasto"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/scheduledPaymentsList"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="16dp"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/filterCard" />
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/limitsFilterChipGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true">
 
-        <TextView
-            android:id="@+id/emptyView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="No hay pagos programados"
-            android:textSize="16sp"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/limitsAllChip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Todos"
+                            android:checked="true" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/limitsActiveChip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Activos" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/limitsNearLimitChip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Cerca del límite" />
+
+                    </com.google.android.material.chip.ChipGroup>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/categoryLimitsList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:nestedScrollingEnabled="false"
+                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+                    <TextView
+                        android:id="@+id/limitsEmptyView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="16dp"
+                        android:text="No hay límites de gasto"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addScheduledPaymentFab"
@@ -76,8 +198,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="Añadir pago programado"
+        android:contentDescription="Añadir elemento"
         android:src="@drawable/ic_add"
-        app:tint="@android:color/white" />
+        app:tint="@android:color/black" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 

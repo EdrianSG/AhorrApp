@@ -1,6 +1,7 @@
 package com.example.ahorrapp.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -25,29 +26,19 @@ class ScheduledPaymentViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _filterType = MutableStateFlow(FilterType.ALL)
-    
-    val scheduledPayments = _filterType.flatMapLatest { filterType ->
-        when (filterType) {
-            FilterType.ALL -> repository.getAllByUser(userId)
-            FilterType.ACTIVE -> repository.getAllActiveByUser(userId)
-            FilterType.INACTIVE -> repository.getAllInactiveByUser(userId)
-        }
-    }.asLiveData()
+    init {
+        Log.d("ScheduledPaymentViewModel", "Inicializado con userId: $userId")
+    }
+
+    // Siempre cargar todos los pagos del usuario
+    val scheduledPayments = repository.getAllByUser(userId).asLiveData()
 
     private val _paymentResult = MutableLiveData<Result<ScheduledPayment>>()
     val paymentResult: LiveData<Result<ScheduledPayment>> = _paymentResult
 
     fun loadAllPayments() {
-        _filterType.value = FilterType.ALL
-    }
-
-    fun loadActivePayments() {
-        _filterType.value = FilterType.ACTIVE
-    }
-
-    fun loadInactivePayments() {
-        _filterType.value = FilterType.INACTIVE
+        // No es necesario hacer nada, siempre se cargan todos
+        Log.d("ScheduledPaymentViewModel", "Cargando todos los pagos para userId: $userId")
     }
 
     fun addScheduledPayment(
@@ -106,7 +97,7 @@ class ScheduledPaymentViewModel @Inject constructor(
         }
     }
 
-    private enum class FilterType {
-        ALL, ACTIVE, INACTIVE
+    fun deleteScheduledPayment(payment: ScheduledPayment) {
+        deletePayment(payment)
     }
 } 

@@ -7,8 +7,13 @@ import android.content.Context
 import android.content.Intent
 import com.example.ahorrapp.data.model.RepeatInterval
 import com.example.ahorrapp.data.model.ScheduledPayment
+import com.example.ahorrapp.data.model.Transaction
+import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.service.NotificationService
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
@@ -17,26 +22,96 @@ class PaymentAlarmReceiver : BroadcastReceiver() {
 
     @Inject
     lateinit var notificationService: NotificationService
+    
+    @Inject
+    lateinit var transactionRepository: TransactionRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         val paymentId = intent.getLongExtra("payment_id", -1)
         val title = intent.getStringExtra("title") ?: ""
         val description = intent.getStringExtra("description") ?: ""
         val amount = intent.getDoubleExtra("amount", 0.0)
+        val userId = intent.getLongExtra("user_id", -1)
+        val category = intent.getStringExtra("category") ?: ""
 
         if (paymentId != -1L) {
             val payment = ScheduledPayment(
                 id = paymentId,
-                userId = intent.getLongExtra("user_id", -1),
+                userId = userId,
                 title = title,
                 description = description,
                 amount = amount,
                 startDate = Date(intent.getLongExtra("start_date", 0)),
                 endDate = intent.getLongExtra("end_date", -1).let { if (it == -1L) null else Date(it) },
                 repeatInterval = intent.getSerializableExtra("repeat_interval") as RepeatInterval,
-                category = intent.getStringExtra("category") ?: ""
+                category = category
             )
+            
+            // Mostrar notificación
             notificationService.showPaymentNotification(payment)
+            
+            // Crear transacción automáticamente
+            createTransactionFromPayment(payment)
+            
+            // Programar próxima alarma si es recurrente
+            scheduleNextPayment(context, payment)
+        }
+    }
+    
+    private fun createTransactionFromPayment(payment: ScheduledPayment) {
+        // Crear una transacción de tipo GASTO para el pago programado
+        val transaction = Transaction(
+            userId = payment.userId,
+            description = "Pago programado: ${payment.title}",
+            amount = payment.amount,
+            type = "GASTO",
+            category = payment.category
+        )
+        
+        // Ejecutar en una coroutine para evitar bloqueos
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                transactionRepository.addTransaction(transaction)
+            } catch (e: Exception) {
+                // Log del error pero no fallar la notificación
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    private fun scheduleNextPayment(context: Context, payment: ScheduledPayment) {
+        // Solo programar próxima alarma si es recurrente y no es NONE
+        if (payment.repeatInterval != RepeatInterval.NONE) {
+            val nextDate = calculateNextPaymentDate(payment)
+            if (nextDate != null) {
+                val nextPayment = payment.copy(startDate = nextDate)
+                schedulePaymentAlarm(context, nextPayment)
+            }
+        }
+    }
+    
+    private fun calculateNextPaymentDate(payment: ScheduledPayment): Date? {
+        val calendar = Calendar.getInstance()
+        calendar.time = payment.startDate
+        
+        return when (payment.repeatInterval) {
+            RepeatInterval.DAILY -> {
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                calendar.time
+            }
+            RepeatInterval.WEEKLY -> {
+                calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                calendar.time
+            }
+            RepeatInterval.MONTHLY -> {
+                calendar.add(Calendar.MONTH, 1)
+                calendar.time
+            }
+            RepeatInterval.YEARLY -> {
+                calendar.add(Calendar.YEAR, 1)
+                calendar.time
+            }
+            RepeatInterval.NONE -> null
         }
     }
 

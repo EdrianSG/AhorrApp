@@ -1,13 +1,18 @@
 package com.example.ahorrapp.di
 
 import android.content.Context
+import android.util.Log
 import com.example.ahorrapp.data.AppDatabase
 import com.example.ahorrapp.data.dao.ScheduledPaymentDao
 import com.example.ahorrapp.data.dao.TransactionDao
 import com.example.ahorrapp.data.dao.UserDao
+import com.example.ahorrapp.data.dao.SavingsGoalDao
+import com.example.ahorrapp.data.dao.CategoryLimitDao
 import com.example.ahorrapp.data.repository.ScheduledPaymentRepository
 import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.data.repository.UserRepository
+import com.example.ahorrapp.data.repository.SavingsGoalRepository
+import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import com.example.ahorrapp.service.NotificationService
 import com.example.ahorrapp.utils.SessionManager
 import dagger.Module
@@ -42,6 +47,16 @@ object AppModule {
         return database.scheduledPaymentDao()
     }
 
+    @Provides
+    fun provideSavingsGoalDao(database: AppDatabase): SavingsGoalDao {
+        return database.savingsGoalDao()
+    }
+
+    @Provides
+    fun provideCategoryLimitDao(database: AppDatabase): CategoryLimitDao {
+        return database.categoryLimitDao()
+    }
+
     @Singleton
     @Provides
     fun provideUserRepository(userDao: UserDao): UserRepository {
@@ -62,6 +77,18 @@ object AppModule {
 
     @Singleton
     @Provides
+    fun provideSavingsGoalRepository(savingsGoalDao: SavingsGoalDao): SavingsGoalRepository {
+        return SavingsGoalRepository(savingsGoalDao)
+    }
+
+    @Singleton
+    @Provides
+    fun provideCategoryLimitRepository(categoryLimitDao: CategoryLimitDao): CategoryLimitRepository {
+        return CategoryLimitRepository(categoryLimitDao)
+    }
+
+    @Singleton
+    @Provides
     fun provideSessionManager(@ApplicationContext context: Context): SessionManager {
         return SessionManager(context)
     }
@@ -74,6 +101,8 @@ object AppModule {
 
     @Provides
     fun provideUserId(sessionManager: SessionManager): Long {
-        return sessionManager.getUserId()
+        val userId = sessionManager.getUserId()
+        Log.d("AppModule", "Proporcionando userId: $userId")
+        return userId
     }
 } 

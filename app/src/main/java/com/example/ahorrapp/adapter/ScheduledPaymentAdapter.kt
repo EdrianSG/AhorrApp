@@ -62,11 +62,6 @@ class ScheduledPaymentAdapter(
 
                 repeatIntervalChip.text = getRepeatIntervalText(payment.repeatInterval)
                 nextPaymentChip.text = "Próximo: ${formatDate(payment.startDate)}"
-                statusChip.text = if (payment.isActive) "Activo" else "Inactivo"
-                statusChip.setChipBackgroundColorResource(
-                    if (payment.isActive) android.R.color.holo_green_light
-                    else android.R.color.darker_gray
-                )
             }
         }
 

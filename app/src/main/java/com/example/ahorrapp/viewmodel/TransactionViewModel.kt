@@ -9,12 +9,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.ahorrapp.data.model.CategoryTotal
 import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.repository.TransactionRepository
+import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.Date
 
 class TransactionViewModel(
     private val repository: TransactionRepository,
+    private val categoryLimitRepository: CategoryLimitRepository,
     private val userId: Long
 ) : ViewModel() {
 
@@ -66,11 +68,36 @@ class TransactionViewModel(
                     category = category
                 )
                 val result = repository.addTransaction(transaction)
+                
+                // Si es un gasto, actualizar el límite de categoría correspondiente
+                if (type == "GASTO") {
+                    updateCategoryLimit(category, amount)
+                }
+                
                 _transactionResult.value = result
                 updateTotals()
             } catch (e: Exception) {
                 _transactionResult.value = Result.failure(e)
             }
+        }
+    }
+    
+    private suspend fun updateCategoryLimit(category: String, amount: Double) {
+        try {
+            // Buscar si existe un límite activo para esta categoría
+            val currentDate = Date()
+            val activeLimits = categoryLimitRepository.getActiveLimitsByDate(userId, currentDate)
+            
+            // Encontrar el límite que coincida con la categoría
+            val matchingLimit = activeLimits.find { it.category == category }
+            
+            if (matchingLimit != null) {
+                // Actualizar el gasto en el límite
+                categoryLimitRepository.addSpentToLimit(matchingLimit.id, amount)
+            }
+        } catch (e: Exception) {
+            // Log del error pero no fallar la transacción
+            e.printStackTrace()
         }
     }
 
@@ -104,12 +131,13 @@ class TransactionViewModel(
 
 class TransactionViewModelFactory(
     private val repository: TransactionRepository,
+    private val categoryLimitRepository: CategoryLimitRepository,
     private val userId: Long
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TransactionViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TransactionViewModel(repository, userId) as T
+            return TransactionViewModel(repository, categoryLimitRepository, userId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
