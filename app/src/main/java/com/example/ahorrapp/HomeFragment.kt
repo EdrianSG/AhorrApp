@@ -35,6 +35,8 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.ahorrapp.data.repository.NotificationSettingsRepository
+import com.example.ahorrapp.service.EnhancedNotificationService
 
 class HomeFragment : Fragment() {
 
@@ -46,12 +48,14 @@ class HomeFragment : Fragment() {
     private lateinit var gastosTextView: TextView
     private var selectedCategory: TransactionCategory? = null
 
-    private val viewModel: TransactionViewModel by viewModels {
+    private val viewModel: TransactionViewModel by lazy {
         TransactionViewModelFactory(
             TransactionRepository(AppDatabase.getDatabase(requireContext()).transactionDao()),
             CategoryLimitRepository(AppDatabase.getDatabase(requireContext()).categoryLimitDao()),
+            EnhancedNotificationService(requireContext()),
+            NotificationSettingsRepository(AppDatabase.getDatabase(requireContext()).notificationSettingsDao()),
             sessionManager.getUserId()
-        )
+        ).create(TransactionViewModel::class.java)
     }
 
     private val currencyChangeReceiver = object : BroadcastReceiver() {

@@ -8,12 +8,15 @@ import com.example.ahorrapp.data.dao.TransactionDao
 import com.example.ahorrapp.data.dao.UserDao
 import com.example.ahorrapp.data.dao.SavingsGoalDao
 import com.example.ahorrapp.data.dao.CategoryLimitDao
+import com.example.ahorrapp.data.dao.NotificationSettingsDao
 import com.example.ahorrapp.data.repository.ScheduledPaymentRepository
 import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.data.repository.UserRepository
 import com.example.ahorrapp.data.repository.SavingsGoalRepository
 import com.example.ahorrapp.data.repository.CategoryLimitRepository
+import com.example.ahorrapp.data.repository.NotificationSettingsRepository
 import com.example.ahorrapp.service.NotificationService
+import com.example.ahorrapp.service.EnhancedNotificationService
 import com.example.ahorrapp.utils.SessionManager
 import dagger.Module
 import dagger.Provides
@@ -57,6 +60,11 @@ object AppModule {
         return database.categoryLimitDao()
     }
 
+    @Provides
+    fun provideNotificationSettingsDao(database: AppDatabase): NotificationSettingsDao {
+        return database.notificationSettingsDao()
+    }
+
     @Singleton
     @Provides
     fun provideUserRepository(userDao: UserDao): UserRepository {
@@ -89,6 +97,12 @@ object AppModule {
 
     @Singleton
     @Provides
+    fun provideNotificationSettingsRepository(notificationSettingsDao: NotificationSettingsDao): NotificationSettingsRepository {
+        return NotificationSettingsRepository(notificationSettingsDao)
+    }
+
+    @Singleton
+    @Provides
     fun provideSessionManager(@ApplicationContext context: Context): SessionManager {
         return SessionManager(context)
     }
@@ -97,6 +111,12 @@ object AppModule {
     @Provides
     fun provideNotificationService(@ApplicationContext context: Context): NotificationService {
         return NotificationService(context)
+    }
+
+    @Singleton
+    @Provides
+    fun provideEnhancedNotificationService(@ApplicationContext context: Context): EnhancedNotificationService {
+        return EnhancedNotificationService(context)
     }
 
     @Provides

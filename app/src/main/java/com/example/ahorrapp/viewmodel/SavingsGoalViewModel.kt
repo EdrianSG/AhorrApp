@@ -10,6 +10,8 @@ import com.example.ahorrapp.data.model.SavingsGoal
 import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.repository.SavingsGoalRepository
 import com.example.ahorrapp.data.repository.TransactionRepository
+import com.example.ahorrapp.data.repository.NotificationSettingsRepository
+import com.example.ahorrapp.service.EnhancedNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -19,6 +21,8 @@ import javax.inject.Inject
 class SavingsGoalViewModel @Inject constructor(
     private val repository: SavingsGoalRepository,
     private val transactionRepository: TransactionRepository,
+    private val notificationService: EnhancedNotificationService,
+    private val notificationSettingsRepository: NotificationSettingsRepository,
     private val userId: Long
 ) : ViewModel() {
 
@@ -97,6 +101,16 @@ class SavingsGoalViewModel @Inject constructor(
                     )
                     
                     transactionRepository.addTransaction(transaction)
+                    
+                    // 3. Obtener la meta actualizada para mostrar notificación
+                    val updatedGoal = repository.getSavingsGoalById(goalId)
+                    if (updatedGoal != null) {
+                        // 4. Obtener configuraciones de notificación
+                        val notificationSettings = notificationSettingsRepository.getOrCreateNotificationSettings(userId)
+                        
+                        // 5. Mostrar notificación
+                        notificationService.showSavingsGoalNotification(updatedGoal, notificationSettings)
+                    }
                     
                     _addMoneyResult.value = Result.success(Unit)
                     refreshGoals()

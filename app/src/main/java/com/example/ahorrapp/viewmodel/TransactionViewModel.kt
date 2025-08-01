@@ -10,6 +10,8 @@ import com.example.ahorrapp.data.model.CategoryTotal
 import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.data.repository.CategoryLimitRepository
+import com.example.ahorrapp.data.repository.NotificationSettingsRepository
+import com.example.ahorrapp.service.EnhancedNotificationService
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -17,6 +19,8 @@ import java.util.Date
 class TransactionViewModel(
     private val repository: TransactionRepository,
     private val categoryLimitRepository: CategoryLimitRepository,
+    private val notificationService: EnhancedNotificationService,
+    private val notificationSettingsRepository: NotificationSettingsRepository,
     private val userId: Long
 ) : ViewModel() {
 
@@ -94,6 +98,19 @@ class TransactionViewModel(
             if (matchingLimit != null) {
                 // Actualizar el gasto en el límite
                 categoryLimitRepository.addSpentToLimit(matchingLimit.id, amount)
+                
+                // Obtener el límite actualizado para verificar si debe mostrar notificación
+                val updatedLimit = categoryLimitRepository.getCategoryLimitById(matchingLimit.id)
+                if (updatedLimit != null) {
+                    // Obtener configuraciones de notificación
+                    val notificationSettings = notificationSettingsRepository.getOrCreateNotificationSettings(userId)
+                    
+                    // Verificar si debe mostrar notificación (cuando se alcance el umbral)
+                    val percentage = ((updatedLimit.currentSpent / updatedLimit.limitAmount) * 100).toInt()
+                    if (percentage >= notificationSettings.categoryLimitsThreshold) {
+                        notificationService.showCategoryLimitNotification(updatedLimit, notificationSettings)
+                    }
+                }
             }
         } catch (e: Exception) {
             // Log del error pero no fallar la transacción
@@ -132,12 +149,14 @@ class TransactionViewModel(
 class TransactionViewModelFactory(
     private val repository: TransactionRepository,
     private val categoryLimitRepository: CategoryLimitRepository,
+    private val notificationService: EnhancedNotificationService,
+    private val notificationSettingsRepository: NotificationSettingsRepository,
     private val userId: Long
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TransactionViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TransactionViewModel(repository, categoryLimitRepository, userId) as T
+            return TransactionViewModel(repository, categoryLimitRepository, notificationService, notificationSettingsRepository, userId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

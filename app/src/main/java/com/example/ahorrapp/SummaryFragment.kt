@@ -26,6 +26,8 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.PercentFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.ahorrapp.data.repository.NotificationSettingsRepository
+import com.example.ahorrapp.service.EnhancedNotificationService
 
 class SummaryFragment : Fragment() {
     private lateinit var pieChartGastos: PieChart
@@ -39,6 +41,8 @@ class SummaryFragment : Fragment() {
         TransactionViewModelFactory(
             TransactionRepository(AppDatabase.getDatabase(requireContext()).transactionDao()),
             CategoryLimitRepository(AppDatabase.getDatabase(requireContext()).categoryLimitDao()),
+            EnhancedNotificationService(requireContext()),
+            NotificationSettingsRepository(AppDatabase.getDatabase(requireContext()).notificationSettingsDao()),
             sessionManager.getUserId()
         )
     }

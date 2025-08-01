@@ -39,7 +39,15 @@
             app:destination="@id/loginFragment"
             app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_settingsFragment_to_notificationSettingsFragment"
+            app:destination="@id/notificationSettingsFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/notificationSettingsFragment"
+        android:name="com.example.ahorrapp.ui.notifications.NotificationSettingsFragment"
+        android:label="Configuración de Notificaciones" />
 
     <fragment
         android:id="@+id/loginFragment"

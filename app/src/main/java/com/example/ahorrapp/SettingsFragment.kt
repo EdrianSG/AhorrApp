@@ -34,6 +34,7 @@ class SettingsFragment : Fragment() {
     private lateinit var languageSpinner: Spinner
     private lateinit var themeRadioGroup: RadioGroup
     private lateinit var logoutButton: MaterialButton
+    private lateinit var notificationSettingsButton: MaterialButton
     private lateinit var userNameText: TextView
     private lateinit var sessionManager: SessionManager
 
@@ -55,6 +56,7 @@ class SettingsFragment : Fragment() {
         languageSpinner = view.findViewById(R.id.languageSpinner)
         themeRadioGroup = view.findViewById(R.id.themeRadioGroup)
         logoutButton = view.findViewById(R.id.logoutButton)
+        notificationSettingsButton = view.findViewById(R.id.notificationSettingsButton)
         userNameText = view.findViewById(R.id.userNameText)
 
         // Configurar spinners y tema
@@ -62,6 +64,7 @@ class SettingsFragment : Fragment() {
         setupLanguageSpinner()
         setupThemeSelection()
         setupLogoutButton()
+        setupNotificationSettingsButton()
         loadUserData()
 
         // Cargar preferencias guardadas
@@ -92,6 +95,12 @@ class SettingsFragment : Fragment() {
     private fun setupLogoutButton() {
         logoutButton.setOnClickListener {
             showLogoutConfirmationDialog()
+        }
+    }
+
+    private fun setupNotificationSettingsButton() {
+        notificationSettingsButton.setOnClickListener {
+            findNavController().navigate(R.id.action_settingsFragment_to_notificationSettingsFragment)
         }
     }
 

@@ -10,11 +10,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.ahorrapp.data.converter.DateConverter
 import com.example.ahorrapp.data.dao.CategoryLimitDao
+import com.example.ahorrapp.data.dao.NotificationSettingsDao
 import com.example.ahorrapp.data.dao.SavingsGoalDao
 import com.example.ahorrapp.data.dao.ScheduledPaymentDao
 import com.example.ahorrapp.data.dao.TransactionDao
 import com.example.ahorrapp.data.dao.UserDao
 import com.example.ahorrapp.data.model.CategoryLimit
+import com.example.ahorrapp.data.model.NotificationSettings
 import com.example.ahorrapp.data.model.SavingsGoal
 import com.example.ahorrapp.data.model.ScheduledPayment
 import com.example.ahorrapp.data.model.Transaction
@@ -26,9 +28,10 @@ import com.example.ahorrapp.data.model.User
         Transaction::class, 
         ScheduledPayment::class,
         SavingsGoal::class,
-        CategoryLimit::class
+        CategoryLimit::class,
+        NotificationSettings::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -38,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun scheduledPaymentDao(): ScheduledPaymentDao
     abstract fun savingsGoalDao(): SavingsGoalDao
     abstract fun categoryLimitDao(): CategoryLimitDao
+    abstract fun notificationSettingsDao(): NotificationSettingsDao
 
     companion object {
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -120,6 +124,42 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("AppDatabase", "Ejecutando migración 3_4")
+                // Crear tabla de configuraciones de notificaciones
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS notification_settings (
+                        userId INTEGER PRIMARY KEY NOT NULL,
+                        scheduledPaymentsEnabled INTEGER NOT NULL DEFAULT 1,
+                        scheduledPaymentsSound INTEGER NOT NULL DEFAULT 1,
+                        scheduledPaymentsSoundUri TEXT NOT NULL DEFAULT 'default',
+                        scheduledPaymentsVibration INTEGER NOT NULL DEFAULT 1,
+                        scheduledPaymentsAdvanceTime INTEGER NOT NULL DEFAULT 30,
+                        savingsGoalsEnabled INTEGER NOT NULL DEFAULT 1,
+                        savingsGoalsSound INTEGER NOT NULL DEFAULT 1,
+                        savingsGoalsSoundUri TEXT NOT NULL DEFAULT 'default',
+                        savingsGoalsVibration INTEGER NOT NULL DEFAULT 1,
+                        categoryLimitsEnabled INTEGER NOT NULL DEFAULT 1,
+                        categoryLimitsSound INTEGER NOT NULL DEFAULT 1,
+                        categoryLimitsSoundUri TEXT NOT NULL DEFAULT 'default',
+                        categoryLimitsVibration INTEGER NOT NULL DEFAULT 1,
+                        categoryLimitsThreshold INTEGER NOT NULL DEFAULT 90,
+                        generalNotificationsEnabled INTEGER NOT NULL DEFAULT 1,
+                        generalNotificationsSound INTEGER NOT NULL DEFAULT 1,
+                        generalNotificationsSoundUri TEXT NOT NULL DEFAULT 'default',
+                        generalNotificationsVibration INTEGER NOT NULL DEFAULT 1,
+                        quietHoursEnabled INTEGER NOT NULL DEFAULT 0,
+                        quietHoursStart TEXT NOT NULL DEFAULT '22:00',
+                        quietHoursEnd TEXT NOT NULL DEFAULT '08:00',
+                        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                """)
+                
+                Log.d("AppDatabase", "Migración 3_4 completada")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -131,7 +171,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "ahorrapp_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigration()
                 .build()
                 Log.d("AppDatabase", "Base de datos creada exitosamente")
