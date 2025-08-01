@@ -33,6 +33,7 @@ class PaymentAlarmReceiver : BroadcastReceiver() {
         val amount = intent.getDoubleExtra("amount", 0.0)
         val userId = intent.getLongExtra("user_id", -1)
         val category = intent.getStringExtra("category") ?: ""
+        val notificationTime = intent.getStringExtra("notification_time") ?: "09:00"
 
         if (paymentId != -1L) {
             val payment = ScheduledPayment(
@@ -44,7 +45,8 @@ class PaymentAlarmReceiver : BroadcastReceiver() {
                 startDate = Date(intent.getLongExtra("start_date", 0)),
                 endDate = intent.getLongExtra("end_date", -1).let { if (it == -1L) null else Date(it) },
                 repeatInterval = intent.getSerializableExtra("repeat_interval") as RepeatInterval,
-                category = category
+                category = category,
+                notificationTime = notificationTime
             )
             
             // Mostrar notificación
@@ -128,6 +130,7 @@ class PaymentAlarmReceiver : BroadcastReceiver() {
                 putExtra("end_date", payment.endDate?.time ?: -1)
                 putExtra("repeat_interval", payment.repeatInterval)
                 putExtra("category", payment.category)
+                putExtra("notification_time", payment.notificationTime)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
@@ -137,10 +140,15 @@ class PaymentAlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+            // Parsear la hora de notificación
+            val timeParts = payment.notificationTime.split(":")
+            val hour = timeParts[0].toInt()
+            val minute = timeParts[1].toInt()
+
             val calendar = Calendar.getInstance().apply {
                 time = payment.startDate
-                set(Calendar.HOUR_OF_DAY, 9) // Notificar a las 9 AM
-                set(Calendar.MINUTE, 0)
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
                 set(Calendar.SECOND, 0)
             }
 

@@ -35,6 +35,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.*
 import javax.inject.Inject
+import android.app.TimePickerDialog
 
 @AndroidEntryPoint
 class ScheduledPaymentsFragment : Fragment() {
@@ -287,6 +288,8 @@ class ScheduledPaymentsFragment : Fragment() {
         dialog.show()
     }
 
+    private var selectedNotificationTime = "09:00" // Hora por defecto
+
     private fun setupPaymentDialog(dialogBinding: DialogAddScheduledPaymentBinding) {
         // Configurar el spinner de intervalos de repetición
         val repeatIntervals = RepeatInterval.values().map { it.displayName }
@@ -298,18 +301,25 @@ class ScheduledPaymentsFragment : Fragment() {
         val categories = listOf(
             "Alquiler/Hipoteca",
             "Servicios básicos",
-            "Internet/Telefonía",
-            "Suscripciones",
-            "Seguros",
-            "Préstamos",
+            "Alimentación",
+            "Transporte",
+            "Entretenimiento",
+            "Salud",
             "Educación",
-            "Gimnasio",
-            "Mantenimiento",
             "Otros"
         )
         (dialogBinding.categoryInput as? AutoCompleteTextView)?.setAdapter(
             ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories)
         )
+
+        // Configurar la hora de notificación
+        dialogBinding.notificationTimeText.text = selectedNotificationTime
+        dialogBinding.notificationTimeText.setOnClickListener {
+            showTimePickerDialog { time ->
+                selectedNotificationTime = time
+                dialogBinding.notificationTimeText.text = time
+            }
+        }
 
         // Configurar el checkbox de fecha fin
         dialogBinding.hasEndDateCheckbox.setOnCheckedChangeListener { _, isChecked ->
@@ -317,8 +327,25 @@ class ScheduledPaymentsFragment : Fragment() {
         }
 
         // Mostrar texto informativo sobre la hora de notificación
-        dialogBinding.notificationInfoText.text = "Las notificaciones se enviarán a las 9:00 AM en las fechas programadas"
+        dialogBinding.notificationInfoText.text = "Las notificaciones se enviarán a las $selectedNotificationTime en las fechas programadas"
         dialogBinding.notificationInfoText.visibility = View.VISIBLE
+    }
+
+    private fun showTimePickerDialog(onTimeSelected: (String) -> Unit) {
+        val calendar = Calendar.getInstance()
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        val minute = calendar.get(Calendar.MINUTE)
+
+        TimePickerDialog(
+            requireContext(),
+            { _, selectedHour, selectedMinute ->
+                val time = String.format("%02d:%02d", selectedHour, selectedMinute)
+                onTimeSelected(time)
+            },
+            hour,
+            minute,
+            true
+        ).show()
     }
 
     private fun saveScheduledPayment(dialogBinding: DialogAddScheduledPaymentBinding) {
@@ -369,7 +396,8 @@ class ScheduledPaymentsFragment : Fragment() {
             startDate = startDate,
             endDate = endDate,
             repeatInterval = repeatInterval,
-            category = category
+            category = category,
+            notificationTime = selectedNotificationTime
         )
     }
 
@@ -404,8 +432,12 @@ class ScheduledPaymentsFragment : Fragment() {
                 )
             }
 
+            // Configurar hora de notificación
+            selectedNotificationTime = payment.notificationTime
+            notificationTimeText.text = payment.notificationTime
+
             // Mostrar texto informativo sobre la hora de notificación
-            notificationInfoText.text = "Las notificaciones se enviarán a las 9:00 AM en las fechas programadas"
+            notificationInfoText.text = "Las notificaciones se enviarán a las ${payment.notificationTime} en las fechas programadas"
             notificationInfoText.visibility = View.VISIBLE
         }
 

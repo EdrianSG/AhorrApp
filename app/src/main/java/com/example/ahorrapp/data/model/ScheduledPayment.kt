@@ -16,5 +16,6 @@ data class ScheduledPayment(
     val endDate: Date?,
     val repeatInterval: RepeatInterval,
     val category: String,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val notificationTime: String = "09:00" // Hora por defecto: 9:00 AM
 )
