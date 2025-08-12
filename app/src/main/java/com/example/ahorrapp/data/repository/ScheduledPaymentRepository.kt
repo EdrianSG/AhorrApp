@@ -30,6 +30,16 @@ class ScheduledPaymentRepository @Inject constructor(
         return scheduledPaymentDao.getPaymentsInRange(userId, startDate, endDate)
     }
 
+    suspend fun getPendingPayments(userId: Long, currentDate: Date): List<ScheduledPayment> {
+        Log.d("ScheduledPaymentRepository", "getPendingPayments: Consultando pagos pendientes para userId: $userId")
+        return scheduledPaymentDao.getPendingPayments(userId, currentDate)
+    }
+
+    suspend fun getPaymentById(paymentId: Long): ScheduledPayment? {
+        Log.d("ScheduledPaymentRepository", "getPaymentById: Consultando pago ID: $paymentId")
+        return scheduledPaymentDao.getPaymentById(paymentId)
+    }
+
     suspend fun addScheduledPayment(payment: ScheduledPayment): Long {
         Log.d("ScheduledPaymentRepository", "addScheduledPayment: Agregando pago para userId: ${payment.userId}")
         return scheduledPaymentDao.insert(payment)
@@ -43,5 +53,20 @@ class ScheduledPaymentRepository @Inject constructor(
     suspend fun deleteScheduledPayment(paymentId: Long) {
         Log.d("ScheduledPaymentRepository", "deleteScheduledPayment: Eliminando pago ID: $paymentId")
         scheduledPaymentDao.delete(paymentId)
+    }
+
+    suspend fun confirmPayment(paymentId: Long) {
+        Log.d("ScheduledPaymentRepository", "confirmPayment: Confirmando pago ID: $paymentId")
+        scheduledPaymentDao.confirmPayment(paymentId)
+    }
+
+    suspend fun updateNotificationDates(paymentId: Long, notificationDate: Date, nextDate: Date) {
+        Log.d("ScheduledPaymentRepository", "updateNotificationDates: Actualizando fechas de notificación para pago ID: $paymentId")
+        scheduledPaymentDao.updateNotificationDates(paymentId, notificationDate, nextDate)
+    }
+
+    suspend fun resetConfirmation(paymentId: Long) {
+        Log.d("ScheduledPaymentRepository", "resetConfirmation: Reseteando confirmación para pago ID: $paymentId")
+        scheduledPaymentDao.resetConfirmation(paymentId)
     }
 } 

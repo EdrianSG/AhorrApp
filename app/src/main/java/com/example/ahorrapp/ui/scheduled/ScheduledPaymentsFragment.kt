@@ -30,6 +30,7 @@ import com.example.ahorrapp.utils.SessionManager
 import com.example.ahorrapp.viewmodel.CategoryLimitViewModel
 import com.example.ahorrapp.viewmodel.SavingsGoalViewModel
 import com.example.ahorrapp.viewmodel.ScheduledPaymentViewModel
+import com.example.ahorrapp.receiver.PaymentAlarmReceiver
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -401,6 +402,71 @@ class ScheduledPaymentsFragment : Fragment() {
         )
     }
 
+    private fun updateScheduledPayment(dialogBinding: DialogAddScheduledPaymentBinding, originalPayment: ScheduledPayment) {
+        val title = dialogBinding.titleInput.text.toString()
+        val description = dialogBinding.descriptionInput.text.toString()
+        val amountText = dialogBinding.amountInput.text.toString()
+        val category = dialogBinding.categoryInput.text.toString()
+        val repeatIntervalText = dialogBinding.repeatIntervalInput.text.toString()
+
+        if (title.isEmpty() || amountText.isEmpty() || category.isEmpty() || repeatIntervalText.isEmpty()) {
+            Toast.makeText(requireContext(), "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val amount = amountText.toDoubleOrNull()
+        if (amount == null || amount <= 0) {
+            Toast.makeText(requireContext(), "Por favor ingresa un monto válido", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val repeatInterval = RepeatInterval.values().find { it.displayName == repeatIntervalText }
+        if (repeatInterval == null) {
+            Toast.makeText(requireContext(), "Por favor selecciona un intervalo válido", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val calendar = Calendar.getInstance()
+        calendar.set(
+            dialogBinding.startDatePicker.year,
+            dialogBinding.startDatePicker.month,
+            dialogBinding.startDatePicker.dayOfMonth
+        )
+        val startDate = calendar.time
+
+        val endDate = if (dialogBinding.hasEndDateCheckbox.isChecked) {
+            calendar.set(
+                dialogBinding.endDatePicker.year,
+                dialogBinding.endDatePicker.month,
+                dialogBinding.endDatePicker.dayOfMonth
+            )
+            calendar.time
+        } else null
+
+        // Cancelar alarma anterior
+        PaymentAlarmReceiver.cancelPaymentAlarm(requireContext(), originalPayment.id)
+
+        // Crear pago actualizado
+        val updatedPayment = originalPayment.copy(
+            title = title,
+            description = description,
+            amount = amount,
+            startDate = startDate,
+            endDate = endDate,
+            repeatInterval = repeatInterval,
+            category = category,
+            notificationTime = selectedNotificationTime,
+            isConfirmed = false // Resetear confirmación
+        )
+
+        scheduledPaymentViewModel.updateScheduledPayment(updatedPayment)
+
+        // Programar nueva alarma
+        PaymentAlarmReceiver.schedulePaymentAlarm(requireContext(), updatedPayment)
+
+        Toast.makeText(requireContext(), "Pago programado actualizado", Toast.LENGTH_SHORT).show()
+    }
+
     private fun showEditPaymentDialog(payment: ScheduledPayment) {
         val dialogBinding = DialogAddScheduledPaymentBinding.inflate(layoutInflater)
         
@@ -447,8 +513,7 @@ class ScheduledPaymentsFragment : Fragment() {
             .setTitle("Editar pago programado")
             .setView(dialogBinding.root)
             .setPositiveButton("Guardar") { _, _ ->
-                // Implementar actualización
-                Toast.makeText(requireContext(), "Función de edición en desarrollo", Toast.LENGTH_SHORT).show()
+                updateScheduledPayment(dialogBinding, payment)
             }
             .setNegativeButton("Cancelar", null)
             .create()

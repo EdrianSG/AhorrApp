@@ -17,5 +17,8 @@ data class ScheduledPayment(
     val repeatInterval: RepeatInterval,
     val category: String,
     val isActive: Boolean = true,
-    val notificationTime: String = "09:00" // Hora por defecto: 9:00 AM
+    val notificationTime: String = "09:00", // Hora por defecto: 9:00 AM
+    val isConfirmed: Boolean = false, // Estado de confirmación del pago
+    val lastNotificationDate: Date? = null, // Fecha de la última notificación enviada
+    val nextNotificationDate: Date? = null // Fecha de la próxima notificación
 )

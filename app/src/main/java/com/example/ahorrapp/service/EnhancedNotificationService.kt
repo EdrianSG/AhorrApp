@@ -15,6 +15,7 @@ import com.example.ahorrapp.data.model.SavingsGoal
 import com.example.ahorrapp.data.model.CategoryLimit
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SoundUtils
+import com.example.ahorrapp.receiver.PaymentConfirmationReceiver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -108,6 +109,80 @@ class EnhancedNotificationService @Inject constructor(
         if (settings.scheduledPaymentsVibration) {
             builder.setVibrate(longArrayOf(0, 250, 250, 250))
         }
+
+        notificationManager.notify(payment.id.toInt(), builder.build())
+    }
+
+    fun showPaymentConfirmationNotification(payment: ScheduledPayment) {
+        android.util.Log.d("EnhancedNotificationService", "Mostrando notificación de confirmación para pago: ${payment.id}")
+        
+        // Crear intent para confirmar pago
+        val confirmIntent = Intent(context, PaymentConfirmationReceiver::class.java).apply {
+            action = PaymentConfirmationReceiver.ACTION_CONFIRM_PAYMENT
+            putExtra(PaymentConfirmationReceiver.EXTRA_PAYMENT_ID, payment.id)
+            putExtra(PaymentConfirmationReceiver.EXTRA_USER_ID, payment.userId)
+            putExtra(PaymentConfirmationReceiver.EXTRA_TITLE, payment.title)
+            putExtra(PaymentConfirmationReceiver.EXTRA_AMOUNT, payment.amount)
+            putExtra(PaymentConfirmationReceiver.EXTRA_CATEGORY, payment.category)
+        }
+        val confirmPendingIntent = PendingIntent.getBroadcast(
+            context,
+            (payment.id * 2).toInt(),
+            confirmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Crear intent para rechazar pago
+        val declineIntent = Intent(context, PaymentConfirmationReceiver::class.java).apply {
+            action = PaymentConfirmationReceiver.ACTION_DECLINE_PAYMENT
+            putExtra(PaymentConfirmationReceiver.EXTRA_PAYMENT_ID, payment.id)
+            putExtra(PaymentConfirmationReceiver.EXTRA_USER_ID, payment.userId)
+            putExtra(PaymentConfirmationReceiver.EXTRA_TITLE, payment.title)
+            putExtra(PaymentConfirmationReceiver.EXTRA_AMOUNT, payment.amount)
+            putExtra(PaymentConfirmationReceiver.EXTRA_CATEGORY, payment.category)
+        }
+        val declinePendingIntent = PendingIntent.getBroadcast(
+            context,
+            (payment.id * 2 + 1).toInt(),
+            declineIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Crear intent para abrir la app
+        val appIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val appPendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            appIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, scheduledPaymentsChannelId)
+            .setSmallIcon(R.drawable.ic_calendar)
+            .setContentTitle("Pago Programado: ${payment.title}")
+            .setContentText("¿Confirmas el pago de ${CurrencyUtils.formatAmount(context, payment.amount)}?")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(appPendingIntent)
+            .setAutoCancel(true)
+            .setOngoing(false) // Permitir que se pueda cancelar
+            .addAction(
+                android.R.drawable.ic_menu_send,
+                "✅ Confirmar",
+                confirmPendingIntent
+            )
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "❌ Rechazar",
+                declinePendingIntent
+            )
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("Pago programado: ${payment.title}\n" +
+                        "Descripción: ${payment.description}\n" +
+                        "Monto: ${CurrencyUtils.formatAmount(context, payment.amount)}\n" +
+                        "Categoría: ${payment.category}\n\n" +
+                        "¿Deseas confirmar este pago?"))
 
         notificationManager.notify(payment.id.toInt(), builder.build())
     }

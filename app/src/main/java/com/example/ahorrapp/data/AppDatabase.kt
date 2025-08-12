@@ -31,7 +31,7 @@ import com.example.ahorrapp.data.model.User
         CategoryLimit::class,
         NotificationSettings::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -169,6 +169,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("AppDatabase", "Ejecutando migración 5_6")
+                // Agregar columnas para confirmación de pagos
+                database.execSQL("ALTER TABLE scheduled_payments ADD COLUMN isConfirmed INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE scheduled_payments ADD COLUMN lastNotificationDate INTEGER")
+                database.execSQL("ALTER TABLE scheduled_payments ADD COLUMN nextNotificationDate INTEGER")
+                Log.d("AppDatabase", "Migración 5_6 completada")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -180,7 +191,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "ahorrapp_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .fallbackToDestructiveMigration()
                 .build()
                 Log.d("AppDatabase", "Base de datos creada exitosamente")

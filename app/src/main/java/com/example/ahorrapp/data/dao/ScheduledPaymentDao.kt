@@ -16,8 +16,14 @@ interface ScheduledPaymentDao {
     @Query("SELECT * FROM scheduled_payments WHERE userId = :userId AND isActive = 0")
     fun getAllInactiveByUser(userId: Long): Flow<List<ScheduledPayment>>
 
+    @Query("SELECT * FROM scheduled_payments WHERE id = :paymentId")
+    suspend fun getPaymentById(paymentId: Long): ScheduledPayment?
+
     @Query("SELECT * FROM scheduled_payments WHERE userId = :userId AND startDate >= :startDate AND (endDate IS NULL OR endDate <= :endDate) AND isActive = 1")
     suspend fun getPaymentsInRange(userId: Long, startDate: Date, endDate: Date): List<ScheduledPayment>
+
+    @Query("SELECT * FROM scheduled_payments WHERE userId = :userId AND isConfirmed = 0 AND nextNotificationDate <= :currentDate")
+    suspend fun getPendingPayments(userId: Long, currentDate: Date): List<ScheduledPayment>
 
     @Insert
     suspend fun insert(payment: ScheduledPayment): Long
@@ -27,4 +33,13 @@ interface ScheduledPaymentDao {
 
     @Query("DELETE FROM scheduled_payments WHERE id = :paymentId")
     suspend fun delete(paymentId: Long)
+
+    @Query("UPDATE scheduled_payments SET isConfirmed = 1 WHERE id = :paymentId")
+    suspend fun confirmPayment(paymentId: Long)
+
+    @Query("UPDATE scheduled_payments SET lastNotificationDate = :notificationDate, nextNotificationDate = :nextDate WHERE id = :paymentId")
+    suspend fun updateNotificationDates(paymentId: Long, notificationDate: Date, nextDate: Date)
+
+    @Query("UPDATE scheduled_payments SET isConfirmed = 0 WHERE id = :paymentId")
+    suspend fun resetConfirmation(paymentId: Long)
 } 

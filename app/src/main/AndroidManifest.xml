@@ -32,6 +32,11 @@
             android:enabled="true"
             android:exported="false" />
 
+        <receiver
+            android:name=".receiver.PaymentConfirmationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
     </application>
 
 </manifest>

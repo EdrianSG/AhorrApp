@@ -9,7 +9,7 @@ import com.example.ahorrapp.data.model.RepeatInterval
 import com.example.ahorrapp.data.model.ScheduledPayment
 import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.repository.TransactionRepository
-import com.example.ahorrapp.service.NotificationService
+import com.example.ahorrapp.service.EnhancedNotificationService
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +21,7 @@ import javax.inject.Inject
 class PaymentAlarmReceiver : BroadcastReceiver() {
 
     @Inject
-    lateinit var notificationService: NotificationService
+    lateinit var notificationService: EnhancedNotificationService
     
     @Inject
     lateinit var transactionRepository: TransactionRepository
@@ -49,35 +49,11 @@ class PaymentAlarmReceiver : BroadcastReceiver() {
                 notificationTime = notificationTime
             )
             
-            // Mostrar notificación
-            notificationService.showPaymentNotification(payment)
-            
-            // Crear transacción automáticamente
-            createTransactionFromPayment(payment)
+            // Mostrar notificación con botones de confirmación
+            notificationService.showPaymentConfirmationNotification(payment)
             
             // Programar próxima alarma si es recurrente
             scheduleNextPayment(context, payment)
-        }
-    }
-    
-    private fun createTransactionFromPayment(payment: ScheduledPayment) {
-        // Crear una transacción de tipo GASTO para el pago programado
-        val transaction = Transaction(
-            userId = payment.userId,
-            description = "Pago programado: ${payment.title}",
-            amount = payment.amount,
-            type = "GASTO",
-            category = payment.category
-        )
-        
-        // Ejecutar en una coroutine para evitar bloqueos
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                transactionRepository.addTransaction(transaction)
-            } catch (e: Exception) {
-                // Log del error pero no fallar la notificación
-                e.printStackTrace()
-            }
         }
     }
     
