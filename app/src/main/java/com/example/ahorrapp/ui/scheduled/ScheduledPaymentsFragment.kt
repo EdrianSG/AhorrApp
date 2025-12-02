@@ -20,6 +20,11 @@ import com.example.ahorrapp.data.model.RepeatInterval
 import com.example.ahorrapp.data.model.SavingsGoal
 import com.example.ahorrapp.data.model.ScheduledPayment
 import com.example.ahorrapp.data.model.Categories
+import com.example.ahorrapp.data.model.Wallet
+import com.example.ahorrapp.data.repository.WalletRepository
+import com.example.ahorrapp.data.repository.TransactionRepository
+import com.example.ahorrapp.adapter.WalletWithBalanceAdapter
+import com.example.ahorrapp.adapter.WalletWithBalance
 import com.example.ahorrapp.databinding.DialogAddCategoryLimitBinding
 import com.example.ahorrapp.databinding.DialogAddMoneyToGoalBinding
 import com.example.ahorrapp.databinding.DialogAddSavingsGoalBinding
@@ -27,6 +32,8 @@ import com.example.ahorrapp.databinding.DialogAddScheduledPaymentBinding
 import com.example.ahorrapp.databinding.FragmentScheduledPaymentsBinding
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SessionManager
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.example.ahorrapp.viewmodel.CategoryLimitViewModel
 import com.example.ahorrapp.viewmodel.SavingsGoalViewModel
 import com.example.ahorrapp.viewmodel.ScheduledPaymentViewModel
@@ -53,6 +60,12 @@ class ScheduledPaymentsFragment : Fragment() {
 
     @Inject
     lateinit var sessionManager: SessionManager
+
+    @Inject
+    lateinit var walletRepository: WalletRepository
+
+    @Inject
+    lateinit var transactionRepository: TransactionRepository
 
     companion object {
         private const val TAG = "ScheduledPaymentsFragment"
@@ -313,6 +326,9 @@ class ScheduledPaymentsFragment : Fragment() {
             ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories)
         )
 
+        // Configurar selector de billetera
+        setupWalletSpinner(dialogBinding.walletInput)
+
         // Configurar la hora de notificación
         dialogBinding.notificationTimeText.text = selectedNotificationTime
         dialogBinding.notificationTimeText.setOnClickListener {
@@ -330,6 +346,39 @@ class ScheduledPaymentsFragment : Fragment() {
         // Mostrar texto informativo sobre la hora de notificación
         dialogBinding.notificationInfoText.text = "Las notificaciones se enviarán a las $selectedNotificationTime en las fechas programadas"
         dialogBinding.notificationInfoText.visibility = View.VISIBLE
+    }
+
+    private fun setupWalletSpinner(walletInput: AutoCompleteTextView) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId()
+            val activeWallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            
+            // Calcular balance para cada billetera
+            val walletsWithBalance = activeWallets.map { wallet ->
+                val balance = transactionRepository.getWalletBalance(userId, wallet.id)
+                WalletWithBalance(wallet, balance)
+            }
+            
+            val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
+            walletInput.setAdapter(adapter)
+            
+            // Seleccionar la primera billetera por defecto si existe
+            if (walletsWithBalance.isNotEmpty()) {
+                walletInput.setText(walletsWithBalance.first().getDisplayText(requireContext()), false)
+            }
+        }
+    }
+
+    private suspend fun getSelectedWalletId(walletInput: AutoCompleteTextView): Long? {
+        val walletText = walletInput.text.toString()
+        if (walletText.isEmpty()) return null
+        
+        val userId = sessionManager.getUserId()
+        val wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+        
+        // Extraer el nombre de la billetera del texto (antes del guion)
+        val walletName = walletText.split(" - ").firstOrNull() ?: walletText
+        return wallets.find { it.name == walletName }?.id
     }
 
     private fun showTimePickerDialog(onTimeSelected: (String) -> Unit) {
@@ -390,16 +439,20 @@ class ScheduledPaymentsFragment : Fragment() {
             calendar.time
         } else null
 
-        scheduledPaymentViewModel.addScheduledPayment(
-            title = title,
-            description = description,
-            amount = amount,
-            startDate = startDate,
-            endDate = endDate,
-            repeatInterval = repeatInterval,
-            category = category,
-            notificationTime = selectedNotificationTime
-        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            val walletId = getSelectedWalletId(dialogBinding.walletInput)
+            scheduledPaymentViewModel.addScheduledPayment(
+                title = title,
+                description = description,
+                amount = amount,
+                startDate = startDate,
+                endDate = endDate,
+                repeatInterval = repeatInterval,
+                category = category,
+                notificationTime = selectedNotificationTime,
+                walletId = walletId
+            )
+        }
     }
 
     private fun updateScheduledPayment(dialogBinding: DialogAddScheduledPaymentBinding, originalPayment: ScheduledPayment) {
@@ -443,28 +496,33 @@ class ScheduledPaymentsFragment : Fragment() {
             calendar.time
         } else null
 
-        // Cancelar alarma anterior
-        PaymentAlarmReceiver.cancelPaymentAlarm(requireContext(), originalPayment.id)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val walletId = getSelectedWalletId(dialogBinding.walletInput)
+            
+            // Cancelar alarma anterior
+            PaymentAlarmReceiver.cancelPaymentAlarm(requireContext(), originalPayment.id)
 
-        // Crear pago actualizado
-        val updatedPayment = originalPayment.copy(
-            title = title,
-            description = description,
-            amount = amount,
-            startDate = startDate,
-            endDate = endDate,
-            repeatInterval = repeatInterval,
-            category = category,
-            notificationTime = selectedNotificationTime,
-            isConfirmed = false // Resetear confirmación
-        )
+            // Crear pago actualizado
+            val updatedPayment = originalPayment.copy(
+                title = title,
+                description = description,
+                amount = amount,
+                startDate = startDate,
+                endDate = endDate,
+                repeatInterval = repeatInterval,
+                category = category,
+                notificationTime = selectedNotificationTime,
+                walletId = walletId,
+                isConfirmed = false // Resetear confirmación
+            )
 
-        scheduledPaymentViewModel.updateScheduledPayment(updatedPayment)
+            scheduledPaymentViewModel.updateScheduledPayment(updatedPayment)
 
-        // Programar nueva alarma
-        PaymentAlarmReceiver.schedulePaymentAlarm(requireContext(), updatedPayment)
+            // Programar nueva alarma
+            PaymentAlarmReceiver.schedulePaymentAlarm(requireContext(), updatedPayment)
 
-        Toast.makeText(requireContext(), "Pago programado actualizado", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Pago programado actualizado", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showEditPaymentDialog(payment: ScheduledPayment) {
@@ -508,6 +566,19 @@ class ScheduledPaymentsFragment : Fragment() {
         }
 
         setupPaymentDialog(dialogBinding)
+        
+        // Cargar billetera seleccionada si existe
+        viewLifecycleOwner.lifecycleScope.launch {
+            payment.walletId?.let { walletId ->
+                val userId = sessionManager.getUserId()
+                val wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+                wallets.find { it.id == walletId }?.let { wallet ->
+                    val balance = transactionRepository.getWalletBalance(userId, wallet.id)
+                    val walletWithBalance = WalletWithBalance(wallet, balance)
+                    dialogBinding.walletInput.setText(walletWithBalance.getDisplayText(requireContext()), false)
+                }
+            }
+        }
 
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle("Editar pago programado")
@@ -606,6 +677,9 @@ class ScheduledPaymentsFragment : Fragment() {
             dialogBinding.goalNameText.text = goal.name
             dialogBinding.goalProgressText.text = "${goal.progress.toInt()}% completado - ${CurrencyUtils.formatAmount(requireContext(), goal.remainingAmount)} restante"
 
+            // Configurar selector de billetera
+            setupWalletSpinnerForGoal(dialogBinding.walletInput, goal)
+
             val dialog = AlertDialog.Builder(requireContext())
                 .setTitle("Agregar dinero a la meta")
                 .setView(dialogBinding.root)
@@ -619,7 +693,10 @@ class ScheduledPaymentsFragment : Fragment() {
                             return@setPositiveButton
                         }
 
-                        savingsGoalViewModel.addMoneyToGoal(goal.id, amount, goal.name)
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            val walletId = getSelectedWalletId(dialogBinding.walletInput)
+                            savingsGoalViewModel.addMoneyToGoal(goal.id, amount, goal.name, walletId)
+                        }
                     } catch (e: Exception) {
                         Toast.makeText(requireContext(), "Error al procesar el monto: ${e.message}", Toast.LENGTH_LONG).show()
                     }
@@ -630,6 +707,31 @@ class ScheduledPaymentsFragment : Fragment() {
             dialog.show()
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Error al mostrar el diálogo: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun setupWalletSpinnerForGoal(walletInput: AutoCompleteTextView, goal: SavingsGoal) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId()
+            val activeWallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            
+            // Calcular balance para cada billetera
+            val walletsWithBalance = activeWallets.map { wallet ->
+                val balance = transactionRepository.getWalletBalance(userId, wallet.id)
+                WalletWithBalance(wallet, balance)
+            }
+            
+            val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
+            walletInput.setAdapter(adapter)
+            
+            // Seleccionar la billetera de la meta si existe, sino la primera activa
+            val selectedWallet = goal.walletId?.let { walletId ->
+                walletsWithBalance.find { it.wallet.id == walletId }
+            } ?: walletsWithBalance.firstOrNull()
+            
+            selectedWallet?.let {
+                walletInput.setText(it.getDisplayText(requireContext()), false)
+            }
         }
     }
 

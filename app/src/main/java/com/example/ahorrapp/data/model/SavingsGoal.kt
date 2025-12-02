@@ -2,6 +2,7 @@ package com.example.ahorrapp.data.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.Date
 
@@ -13,8 +14,15 @@ import java.util.Date
             parentColumns = ["id"],
             childColumns = ["userId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Wallet::class,
+            parentColumns = ["id"],
+            childColumns = ["walletId"],
+            onDelete = ForeignKey.SET_NULL
         )
-    ]
+    ],
+    indices = [Index("walletId")]
 )
 data class SavingsGoal(
     @PrimaryKey(autoGenerate = true)
@@ -25,7 +33,8 @@ data class SavingsGoal(
     val currentAmount: Double = 0.0,
     val targetDate: Date,
     val createdAt: Date = Date(),
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val walletId: Long? = null // Billetera asociada a la meta de ahorro
 ) {
     val progress: Double
         get() = if (targetAmount > 0) (currentAmount / targetAmount) * 100 else 0.0

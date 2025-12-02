@@ -73,13 +73,17 @@ class PaymentConfirmationReceiver : BroadcastReceiver() {
     private fun confirmPayment(context: Context, paymentId: Long, userId: Long, title: String, amount: Double, category: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // Obtener el pago para obtener walletId
+                val payment = scheduledPaymentRepository.getPaymentById(paymentId)
+                
                 // Crear la transacción
                 val transaction = Transaction(
                     userId = userId,
                     description = "Pago programado: $title",
                     amount = amount,
                     type = "GASTO",
-                    category = category
+                    category = category,
+                    walletId = payment?.walletId
                 )
                 transactionRepository.addTransaction(transaction)
 

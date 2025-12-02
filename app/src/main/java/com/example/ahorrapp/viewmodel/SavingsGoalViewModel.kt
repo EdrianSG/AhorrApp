@@ -84,7 +84,7 @@ class SavingsGoalViewModel @Inject constructor(
         }
     }
 
-    fun addMoneyToGoal(goalId: Long, amount: Double, goalName: String) {
+    fun addMoneyToGoal(goalId: Long, amount: Double, goalName: String, walletId: Long? = null) {
         viewModelScope.launch {
             try {
                 // 1. Agregar dinero a la meta
@@ -97,7 +97,8 @@ class SavingsGoalViewModel @Inject constructor(
                         description = "Ahorro: $goalName",
                         amount = amount,
                         type = "GASTO",
-                        category = "Ahorro"
+                        category = "Ahorro",
+                        walletId = walletId
                     )
                     
                     transactionRepository.addTransaction(transaction)

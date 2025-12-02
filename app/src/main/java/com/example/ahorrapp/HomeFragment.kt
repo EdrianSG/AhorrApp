@@ -14,12 +14,16 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.Spinner
+import android.widget.ArrayAdapter
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.ahorrapp.adapter.CategoryAdapter
+import com.example.ahorrapp.adapter.WalletWithBalanceAdapter
+import com.example.ahorrapp.adapter.WalletWithBalance
 import com.example.ahorrapp.data.AppDatabase
 import com.example.ahorrapp.data.model.Categories
 import com.example.ahorrapp.data.model.Transaction
@@ -27,6 +31,8 @@ import com.example.ahorrapp.data.model.TransactionCategory
 import com.example.ahorrapp.data.model.TransactionType
 import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.data.repository.CategoryLimitRepository
+import com.example.ahorrapp.data.repository.WalletRepository
+import com.example.ahorrapp.data.model.Wallet
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SessionManager
 import com.example.ahorrapp.viewmodel.TransactionViewModel
@@ -42,6 +48,8 @@ import android.app.TimePickerDialog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
 
@@ -233,6 +241,37 @@ class HomeFragment : Fragment() {
 
         val typeRadioGroup = dialogView.findViewById<RadioGroup>(R.id.typeRadioGroup)
         val categoryButton = dialogView.findViewById<MaterialButton>(R.id.categoryButton)
+        val walletSpinner = dialogView.findViewById<Spinner>(R.id.walletSpinner)
+
+        // Cargar billeteras con balance
+        val walletDao = AppDatabase.getDatabase(requireContext()).walletDao()
+        val walletRepository = WalletRepository(walletDao)
+        val transactionDao = AppDatabase.getDatabase(requireContext()).transactionDao()
+        val transactionRepository = TransactionRepository(transactionDao)
+        var wallets: List<Wallet> = emptyList()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId()
+            wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+
+            if (wallets.isEmpty()) {
+                // Crear billeteras por defecto
+                val defaultWallets = listOf("Efectivo", "Tarjeta de Débito", "Yape", "Plin")
+                defaultWallets.forEach { name ->
+                    walletRepository.addWallet(Wallet(userId = userId, name = name))
+                }
+                wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            }
+
+            // Calcular balance para cada billetera
+            val walletsWithBalance = wallets.map { wallet ->
+                val balance = transactionRepository.getWalletBalance(userId, wallet.id)
+                WalletWithBalance(wallet, balance)
+            }
+
+            val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
+            walletSpinner.adapter = adapter
+        }
 
         typeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
             val type = if (checkedId == R.id.incomeRadio) TransactionType.INGRESO else TransactionType.GASTO
@@ -285,12 +324,18 @@ class HomeFragment : Fragment() {
                 val isIncome = dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked
 
                 if (description.isNotEmpty() && amount != null && selectedCategory != null) {
+                    val selectedWallet = if (walletSpinner.adapter != null && walletSpinner.selectedItemPosition >= 0) {
+                        val adapter = walletSpinner.adapter as? WalletWithBalanceAdapter
+                        adapter?.getItem(walletSpinner.selectedItemPosition)?.wallet
+                    } else null
+
                     viewModel.addTransaction(
                         description = description,
                         amount = amount,
                         type = if (isIncome) "INGRESO" else "GASTO",
                         category = selectedCategory!!.name,
-                        date = calendar.time
+                        date = calendar.time,
+                        walletId = selectedWallet?.id
                     )
                 } else {
                     Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -311,6 +356,7 @@ class HomeFragment : Fragment() {
         val calendar = Calendar.getInstance().apply { time = transaction.date }
         val dateButton = dialogView.findViewById<MaterialButton>(R.id.dateButton)
         val timeButton = dialogView.findViewById<MaterialButton>(R.id.timeButton)
+        val walletSpinner = dialogView.findViewById<Spinner>(R.id.walletSpinner)
 
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -321,6 +367,43 @@ class HomeFragment : Fragment() {
         }
 
         updateDateTimeButtons()
+
+        // Cargar billeteras con balance
+        val walletDao = AppDatabase.getDatabase(requireContext()).walletDao()
+        val walletRepository = WalletRepository(walletDao)
+        val transactionDao = AppDatabase.getDatabase(requireContext()).transactionDao()
+        val transactionRepository = TransactionRepository(transactionDao)
+        var wallets: List<Wallet> = emptyList()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId()
+            wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+
+            if (wallets.isEmpty()) {
+                val defaultWallets = listOf("Efectivo", "Tarjeta de Débito", "Yape", "Plin")
+                defaultWallets.forEach { name ->
+                    walletRepository.addWallet(Wallet(userId = userId, name = name))
+                }
+                wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            }
+
+            // Calcular balance para cada billetera
+            val walletsWithBalance = wallets.map { wallet ->
+                val balance = transactionRepository.getWalletBalance(userId, wallet.id)
+                WalletWithBalance(wallet, balance)
+            }
+
+            val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
+            walletSpinner.adapter = adapter
+
+            // Seleccionar billetera actual si existe
+            transaction.walletId?.let { currentWalletId ->
+                val index = walletsWithBalance.indexOfFirst { it.wallet.id == currentWalletId }
+                if (index >= 0) {
+                    walletSpinner.setSelection(index)
+                }
+            }
+        }
         dialogView.findViewById<EditText>(R.id.descriptionInput).setText(transaction.description)
         dialogView.findViewById<EditText>(R.id.amountInput).setText(transaction.amount.toString())
         
@@ -390,12 +473,18 @@ class HomeFragment : Fragment() {
                 val isIncome = dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked
 
                 if (description.isNotEmpty() && amount != null && selectedCategory != null) {
+                    val selectedWallet = if (walletSpinner.adapter != null && walletSpinner.selectedItemPosition >= 0) {
+                        val adapter = walletSpinner.adapter as? WalletWithBalanceAdapter
+                        adapter?.getItem(walletSpinner.selectedItemPosition)?.wallet
+                    } else null
+
                     val updatedTransaction = transaction.copy(
                         description = description,
                         amount = amount,
                         type = if (isIncome) "INGRESO" else "GASTO",
                         category = selectedCategory!!.name,
-                        date = calendar.time
+                        date = calendar.time,
+                        walletId = selectedWallet?.id
                     )
                     viewModel.updateTransaction(updatedTransaction)
                 } else {

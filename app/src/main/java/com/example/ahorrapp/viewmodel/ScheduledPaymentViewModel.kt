@@ -49,7 +49,8 @@ class ScheduledPaymentViewModel @Inject constructor(
         endDate: Date?,
         repeatInterval: RepeatInterval,
         category: String,
-        notificationTime: String = "09:00"
+        notificationTime: String = "09:00",
+        walletId: Long? = null
     ) {
         viewModelScope.launch {
             try {
@@ -62,7 +63,8 @@ class ScheduledPaymentViewModel @Inject constructor(
                     endDate = endDate,
                     repeatInterval = repeatInterval,
                     category = category,
-                    notificationTime = notificationTime
+                    notificationTime = notificationTime,
+                    walletId = walletId
                 )
                 val id = repository.addScheduledPayment(payment)
                 val savedPayment = payment.copy(id = id)

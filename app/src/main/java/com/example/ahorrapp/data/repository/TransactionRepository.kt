@@ -78,4 +78,10 @@ class TransactionRepository(private val transactionDao: TransactionDao) {
             transactionDao.getTransactionsByDateRange(userId, startTimestamp, endTimestamp)
         }
     }
+
+    suspend fun getWalletBalance(userId: Long, walletId: Long): Double {
+        return withContext(Dispatchers.IO) {
+            transactionDao.getWalletBalance(userId, walletId) ?: 0.0
+        }
+    }
 } 

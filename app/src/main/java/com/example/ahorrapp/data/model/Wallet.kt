@@ -4,10 +4,9 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.util.Date
 
 @Entity(
-    tableName = "transactions",
+    tableName = "wallets",
     foreignKeys = [
         ForeignKey(
             entity = User::class,
@@ -18,14 +17,12 @@ import java.util.Date
     ],
     indices = [Index("userId")]
 )
-data class Transaction(
+data class Wallet(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val userId: Long,
-    val description: String,
-    val amount: Double,
-    val type: String, // "INGRESO" o "GASTO"
-    val category: String,
-    val date: Date = Date(),
-    val walletId: Long? = null
-) 
+    val name: String,
+    val isActive: Boolean = true
+)
+
+

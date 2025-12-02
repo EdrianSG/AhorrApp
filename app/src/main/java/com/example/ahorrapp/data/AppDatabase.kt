@@ -11,6 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.ahorrapp.data.converter.DateConverter
 import com.example.ahorrapp.data.dao.CategoryLimitDao
 import com.example.ahorrapp.data.dao.NotificationSettingsDao
+import com.example.ahorrapp.data.dao.WalletDao
 import com.example.ahorrapp.data.dao.SavingsGoalDao
 import com.example.ahorrapp.data.dao.ScheduledPaymentDao
 import com.example.ahorrapp.data.dao.TransactionDao
@@ -20,6 +21,7 @@ import com.example.ahorrapp.data.model.NotificationSettings
 import com.example.ahorrapp.data.model.SavingsGoal
 import com.example.ahorrapp.data.model.ScheduledPayment
 import com.example.ahorrapp.data.model.Transaction
+import com.example.ahorrapp.data.model.Wallet
 import com.example.ahorrapp.data.model.User
 
 @Database(
@@ -29,9 +31,10 @@ import com.example.ahorrapp.data.model.User
         ScheduledPayment::class,
         SavingsGoal::class,
         CategoryLimit::class,
-        NotificationSettings::class
+        NotificationSettings::class,
+        Wallet::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -42,6 +45,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun savingsGoalDao(): SavingsGoalDao
     abstract fun categoryLimitDao(): CategoryLimitDao
     abstract fun notificationSettingsDao(): NotificationSettingsDao
+    abstract fun walletDao(): WalletDao
 
     companion object {
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -180,6 +184,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("AppDatabase", "Ejecutando migración 7_8")
+                // Agregar columna walletId a scheduled_payments
+                database.execSQL("ALTER TABLE scheduled_payments ADD COLUMN walletId INTEGER")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_scheduled_payments_walletId ON scheduled_payments(walletId)")
+                
+                // Agregar columna walletId a savings_goals
+                database.execSQL("ALTER TABLE savings_goals ADD COLUMN walletId INTEGER")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_savings_goals_walletId ON savings_goals(walletId)")
+                
+                Log.d("AppDatabase", "Migración 7_8 completada")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -191,7 +210,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "ahorrapp_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_7_8)
                 .fallbackToDestructiveMigration()
                 .build()
                 Log.d("AppDatabase", "Base de datos creada exitosamente")

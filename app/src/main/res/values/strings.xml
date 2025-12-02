@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AhorrApp</string>
+    <string name="active">Activa</string>
+    <string name="inactive">Inactiva</string>
+    <string name="manage_wallets">Gestionar Billeteras</string>
+    <string name="add_wallet">Agregar Billetera</string>
+    <string name="edit_wallet">Editar Billetera</string>
+    <string name="delete_wallet">Eliminar Billetera</string>
+    <string name="delete_wallet_confirmation">¿Estás seguro de que deseas eliminar esta billetera?</string>
 </resources>

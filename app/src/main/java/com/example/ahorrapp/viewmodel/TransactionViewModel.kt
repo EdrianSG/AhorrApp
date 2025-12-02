@@ -61,7 +61,8 @@ class TransactionViewModel(
         amount: Double,
         type: String,
         category: String,
-        date: Date = Date()
+        date: Date = Date(),
+        walletId: Long? = null
     ) {
         viewModelScope.launch {
             try {
@@ -71,7 +72,8 @@ class TransactionViewModel(
                     amount = amount,
                     type = type,
                     category = category,
-                    date = date
+                    date = date,
+                    walletId = walletId
                 )
                 val result = repository.addTransaction(transaction)
                 

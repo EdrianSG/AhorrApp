@@ -50,4 +50,12 @@ interface TransactionDao {
         ORDER BY date DESC
     """)
     suspend fun getTransactionsByDateRange(userId: Long, startTimestamp: Long, endTimestamp: Long): List<Transaction>
+
+    @Query("""
+        SELECT 
+            COALESCE(SUM(CASE WHEN type = 'INGRESO' THEN amount ELSE -amount END), 0.0) as balance
+        FROM transactions 
+        WHERE userId = :userId AND walletId = :walletId
+    """)
+    suspend fun getWalletBalance(userId: Long, walletId: Long): Double?
 } 

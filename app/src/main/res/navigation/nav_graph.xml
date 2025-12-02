@@ -42,12 +42,20 @@
         <action
             android:id="@+id/action_settingsFragment_to_notificationSettingsFragment"
             app:destination="@id/notificationSettingsFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_walletsFragment"
+            app:destination="@id/walletsFragment" />
     </fragment>
 
     <fragment
         android:id="@+id/notificationSettingsFragment"
         android:name="com.example.ahorrapp.ui.notifications.NotificationSettingsFragment"
         android:label="Configuración de Notificaciones" />
+
+    <fragment
+        android:id="@+id/walletsFragment"
+        android:name="com.example.ahorrapp.ui.wallets.WalletsFragment"
+        android:label="Gestionar Billeteras" />
 
     <fragment
         android:id="@+id/loginFragment"

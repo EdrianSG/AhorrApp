@@ -9,12 +9,14 @@ import com.example.ahorrapp.data.dao.UserDao
 import com.example.ahorrapp.data.dao.SavingsGoalDao
 import com.example.ahorrapp.data.dao.CategoryLimitDao
 import com.example.ahorrapp.data.dao.NotificationSettingsDao
+import com.example.ahorrapp.data.dao.WalletDao
 import com.example.ahorrapp.data.repository.ScheduledPaymentRepository
 import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.data.repository.UserRepository
 import com.example.ahorrapp.data.repository.SavingsGoalRepository
 import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import com.example.ahorrapp.data.repository.NotificationSettingsRepository
+import com.example.ahorrapp.data.repository.WalletRepository
 import com.example.ahorrapp.service.NotificationService
 import com.example.ahorrapp.service.EnhancedNotificationService
 import com.example.ahorrapp.utils.SessionManager
@@ -65,6 +67,11 @@ object AppModule {
         return database.notificationSettingsDao()
     }
 
+    @Provides
+    fun provideWalletDao(database: AppDatabase): WalletDao {
+        return database.walletDao()
+    }
+
     @Singleton
     @Provides
     fun provideUserRepository(userDao: UserDao): UserRepository {
@@ -99,6 +106,12 @@ object AppModule {
     @Provides
     fun provideNotificationSettingsRepository(notificationSettingsDao: NotificationSettingsDao): NotificationSettingsRepository {
         return NotificationSettingsRepository(notificationSettingsDao)
+    }
+
+    @Singleton
+    @Provides
+    fun provideWalletRepository(walletDao: WalletDao): WalletRepository {
+        return WalletRepository(walletDao)
     }
 
     @Singleton

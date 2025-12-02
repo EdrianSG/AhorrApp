@@ -37,6 +37,7 @@ class SettingsFragment : Fragment() {
     private lateinit var colorThemeSpinner: Spinner
     private lateinit var logoutButton: MaterialButton
     private lateinit var notificationSettingsButton: MaterialButton
+    private lateinit var walletsButton: MaterialButton
     private lateinit var userNameText: TextView
     private lateinit var sessionManager: SessionManager
 
@@ -60,6 +61,7 @@ class SettingsFragment : Fragment() {
         colorThemeSpinner = view.findViewById(R.id.colorThemeSpinner)
         logoutButton = view.findViewById(R.id.logoutButton)
         notificationSettingsButton = view.findViewById(R.id.notificationSettingsButton)
+        walletsButton = view.findViewById(R.id.walletsButton)
         userNameText = view.findViewById(R.id.userNameText)
 
         // Configurar spinners y tema
@@ -69,6 +71,7 @@ class SettingsFragment : Fragment() {
         setupColorThemeSelection()
         setupLogoutButton()
         setupNotificationSettingsButton()
+        setupWalletsButton()
         loadUserData()
 
         // Cargar preferencias guardadas
@@ -105,6 +108,12 @@ class SettingsFragment : Fragment() {
     private fun setupNotificationSettingsButton() {
         notificationSettingsButton.setOnClickListener {
             findNavController().navigate(R.id.action_settingsFragment_to_notificationSettingsFragment)
+        }
+    }
+
+    private fun setupWalletsButton() {
+        walletsButton.setOnClickListener {
+            findNavController().navigate(R.id.action_settingsFragment_to_walletsFragment)
         }
     }
 
