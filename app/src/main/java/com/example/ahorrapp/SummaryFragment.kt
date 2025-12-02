@@ -13,6 +13,8 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.ahorrapp.data.AppDatabase
+import com.example.ahorrapp.data.model.Transaction
+import com.example.ahorrapp.data.model.CategoryTotal
 import com.example.ahorrapp.data.repository.TransactionRepository
 import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import com.example.ahorrapp.utils.CurrencyUtils
@@ -28,6 +30,12 @@ import com.github.mikephil.charting.utils.ColorTemplate
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.ahorrapp.data.repository.NotificationSettingsRepository
 import com.example.ahorrapp.service.EnhancedNotificationService
+import android.widget.RadioGroup
+import com.google.android.material.button.MaterialButton
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class SummaryFragment : Fragment() {
     private lateinit var pieChartGastos: PieChart
@@ -35,7 +43,17 @@ class SummaryFragment : Fragment() {
     private lateinit var totalIngresos: TextView
     private lateinit var totalGastos: TextView
     private lateinit var balanceTotal: TextView
+    private lateinit var periodLabel: TextView
+    private lateinit var prevPeriodButton: MaterialButton
+    private lateinit var nextPeriodButton: MaterialButton
+    private lateinit var periodTypeGroup: RadioGroup
     private lateinit var sessionManager: SessionManager
+
+    private enum class PeriodType { WEEK, MONTH, YEAR }
+    private var currentPeriodType: PeriodType = PeriodType.MONTH
+    private val periodCalendar: Calendar = Calendar.getInstance()
+
+    private var transactionsLiveData: androidx.lifecycle.LiveData<List<Transaction>>? = null
 
     private val viewModel: TransactionViewModel by viewModels {
         TransactionViewModelFactory(
@@ -87,9 +105,14 @@ class SummaryFragment : Fragment() {
         totalIngresos = view.findViewById(R.id.totalIngresos)
         totalGastos = view.findViewById(R.id.totalGastos)
         balanceTotal = view.findViewById(R.id.balanceTotal)
+        periodLabel = view.findViewById(R.id.periodLabel)
+        prevPeriodButton = view.findViewById(R.id.prevPeriodButton)
+        nextPeriodButton = view.findViewById(R.id.nextPeriodButton)
+        periodTypeGroup = view.findViewById(R.id.periodTypeGroup)
 
         setupPieCharts()
-        observeViewModel()
+        setupPeriodControls()
+        loadDataForCurrentPeriod()
     }
 
     private fun setupPieCharts() {
@@ -110,31 +133,125 @@ class SummaryFragment : Fragment() {
         }
     }
 
-    private fun observeViewModel() {
-        viewModel.totalIngresos.observe(viewLifecycleOwner) { ingresos ->
-            totalIngresos.text = CurrencyUtils.formatAmount(requireContext(), ingresos)
-            updateBalance()
+    private fun setupPeriodControls() {
+        // Tipo de periodo
+        periodTypeGroup.setOnCheckedChangeListener { _, checkedId ->
+            currentPeriodType = when (checkedId) {
+                R.id.weekRadio -> PeriodType.WEEK
+                R.id.yearRadio -> PeriodType.YEAR
+                else -> PeriodType.MONTH
+            }
+            // Reiniciar al periodo actual
+            periodCalendar.time = Date()
+            loadDataForCurrentPeriod()
         }
 
-        viewModel.totalGastos.observe(viewLifecycleOwner) { gastos ->
-            totalGastos.text = CurrencyUtils.formatAmount(requireContext(), gastos)
-            updateBalance()
+        // Botones anterior / siguiente
+        prevPeriodButton.setOnClickListener {
+            shiftPeriod(-1)
+            loadDataForCurrentPeriod()
         }
 
-        viewModel.getCategoryTotals("GASTO").observe(viewLifecycleOwner) { categoryTotals ->
-            updatePieChart(pieChartGastos, categoryTotals, "Gastos por Categoría")
-        }
-
-        viewModel.getCategoryTotals("INGRESO").observe(viewLifecycleOwner) { categoryTotals ->
-            updatePieChart(pieChartIngresos, categoryTotals, "Ingresos por Categoría")
+        nextPeriodButton.setOnClickListener {
+            shiftPeriod(1)
+            loadDataForCurrentPeriod()
         }
     }
 
-    private fun updateBalance() {
-        val ingresos = viewModel.totalIngresos.value ?: 0.0
-        val gastos = viewModel.totalGastos.value ?: 0.0
-        val balance = ingresos - gastos
+    private fun shiftPeriod(offset: Int) {
+        when (currentPeriodType) {
+            PeriodType.WEEK -> periodCalendar.add(Calendar.WEEK_OF_YEAR, offset)
+            PeriodType.MONTH -> periodCalendar.add(Calendar.MONTH, offset)
+            PeriodType.YEAR -> periodCalendar.add(Calendar.YEAR, offset)
+        }
+    }
+
+    private fun getCurrentPeriodRange(): Pair<Date, Date> {
+        val calStart = periodCalendar.clone() as Calendar
+        val calEnd = periodCalendar.clone() as Calendar
+
+        when (currentPeriodType) {
+            PeriodType.WEEK -> {
+                calStart.firstDayOfWeek = Calendar.MONDAY
+                calStart.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                calEnd.firstDayOfWeek = Calendar.MONDAY
+                calEnd.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+            }
+            PeriodType.MONTH -> {
+                calStart.set(Calendar.DAY_OF_MONTH, 1)
+                calEnd.set(Calendar.DAY_OF_MONTH, calEnd.getActualMaximum(Calendar.DAY_OF_MONTH))
+            }
+            PeriodType.YEAR -> {
+                calStart.set(Calendar.DAY_OF_YEAR, 1)
+                calEnd.set(Calendar.DAY_OF_YEAR, calEnd.getActualMaximum(Calendar.DAY_OF_YEAR))
+            }
+        }
+
+        // Inicio del día
+        calStart.set(Calendar.HOUR_OF_DAY, 0)
+        calStart.set(Calendar.MINUTE, 0)
+        calStart.set(Calendar.SECOND, 0)
+        calStart.set(Calendar.MILLISECOND, 0)
+
+        // Fin del día
+        calEnd.set(Calendar.HOUR_OF_DAY, 23)
+        calEnd.set(Calendar.MINUTE, 59)
+        calEnd.set(Calendar.SECOND, 59)
+        calEnd.set(Calendar.MILLISECOND, 999)
+
+        return calStart.time to calEnd.time
+    }
+
+    private fun updatePeriodLabel(start: Date, end: Date) {
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val monthFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+        val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+
+        val text = when (currentPeriodType) {
+            PeriodType.WEEK -> "Semana: ${dateFormat.format(start)} - ${dateFormat.format(end)}"
+            PeriodType.MONTH -> "Mes: ${monthFormat.format(start)}"
+            PeriodType.YEAR -> "Año: ${yearFormat.format(start)}"
+        }
+        periodLabel.text = text.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    }
+
+    private fun loadDataForCurrentPeriod() {
+        val (start, end) = getCurrentPeriodRange()
+        updatePeriodLabel(start, end)
+
+        // Quitar observadores anteriores
+        transactionsLiveData?.removeObservers(viewLifecycleOwner)
+
+        transactionsLiveData = viewModel.getTransactionsByPeriod(start, end)
+        transactionsLiveData?.observe(viewLifecycleOwner) { transactions ->
+            updateSummaryForTransactions(transactions)
+        }
+    }
+
+    private fun updateSummaryForTransactions(transactions: List<Transaction>) {
+        val ingresos = transactions.filter { it.type == "INGRESO" }
+        val gastos = transactions.filter { it.type == "GASTO" }
+
+        val totalIngresosValor = ingresos.sumOf { it.amount }
+        val totalGastosValor = gastos.sumOf { it.amount }
+        val balance = totalIngresosValor - totalGastosValor
+
+        totalIngresos.text = CurrencyUtils.formatAmount(requireContext(), totalIngresosValor)
+        totalGastos.text = CurrencyUtils.formatAmount(requireContext(), totalGastosValor)
         balanceTotal.text = CurrencyUtils.formatAmount(requireContext(), balance)
+
+        // Agrupar por categoría
+        val gastosPorCategoria: List<CategoryTotal> =
+            gastos.groupBy { it.category }.map { (categoria, lista) ->
+                CategoryTotal(category = categoria, total = lista.sumOf { it.amount })
+            }
+        val ingresosPorCategoria: List<CategoryTotal> =
+            ingresos.groupBy { it.category }.map { (categoria, lista) ->
+                CategoryTotal(category = categoria, total = lista.sumOf { it.amount })
+            }
+
+        updatePieChart(pieChartGastos, gastosPorCategoria, "Gastos por Categoría")
+        updatePieChart(pieChartIngresos, ingresosPorCategoria, "Ingresos por Categoría")
     }
 
     private fun updatePieChart(
@@ -173,6 +290,7 @@ class SummaryFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.updateTotals()
+        // Cuando volvemos, recargamos el periodo actual
+        loadDataForCurrentPeriod()
     }
 } 
