@@ -37,6 +37,11 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.ahorrapp.data.repository.NotificationSettingsRepository
 import com.example.ahorrapp.service.EnhancedNotificationService
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class HomeFragment : Fragment() {
 
@@ -211,6 +216,21 @@ class HomeFragment : Fragment() {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_transaction, null)
         selectedCategory = null
 
+        // Fecha y hora por defecto: ahora
+        val calendar = Calendar.getInstance()
+        val dateButton = dialogView.findViewById<MaterialButton>(R.id.dateButton)
+        val timeButton = dialogView.findViewById<MaterialButton>(R.id.timeButton)
+
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+        fun updateDateTimeButtons() {
+            dateButton.text = dateFormat.format(calendar.time)
+            timeButton.text = timeFormat.format(calendar.time)
+        }
+
+        updateDateTimeButtons()
+
         val typeRadioGroup = dialogView.findViewById<RadioGroup>(R.id.typeRadioGroup)
         val categoryButton = dialogView.findViewById<MaterialButton>(R.id.categoryButton)
 
@@ -226,6 +246,35 @@ class HomeFragment : Fragment() {
                 TransactionType.INGRESO else TransactionType.GASTO
             showCategorySelector(dialogView, type) { }
         }
+
+        dateButton.setOnClickListener {
+            DatePickerDialog(
+                requireContext(),
+                { _, year, month, dayOfMonth ->
+                    calendar.set(Calendar.YEAR, year)
+                    calendar.set(Calendar.MONTH, month)
+                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    updateDateTimeButtons()
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        timeButton.setOnClickListener {
+            TimePickerDialog(
+                requireContext(),
+                { _, hourOfDay, minute ->
+                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    calendar.set(Calendar.MINUTE, minute)
+                    updateDateTimeButtons()
+                },
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                true
+            ).show()
+        }
         
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Nueva Transacción")
@@ -240,7 +289,8 @@ class HomeFragment : Fragment() {
                         description = description,
                         amount = amount,
                         type = if (isIncome) "INGRESO" else "GASTO",
-                        category = selectedCategory!!.name
+                        category = selectedCategory!!.name,
+                        date = calendar.time
                     )
                 } else {
                     Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -256,7 +306,21 @@ class HomeFragment : Fragment() {
     private fun showEditTransactionDialog(transaction: Transaction) {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_transaction, null)
         selectedCategory = Categories.getAllCategories().find { it.name == transaction.category }
-        
+
+        // Inicializar fecha y hora con la de la transacción
+        val calendar = Calendar.getInstance().apply { time = transaction.date }
+        val dateButton = dialogView.findViewById<MaterialButton>(R.id.dateButton)
+        val timeButton = dialogView.findViewById<MaterialButton>(R.id.timeButton)
+
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+        fun updateDateTimeButtons() {
+            dateButton.text = dateFormat.format(calendar.time)
+            timeButton.text = timeFormat.format(calendar.time)
+        }
+
+        updateDateTimeButtons()
         dialogView.findViewById<EditText>(R.id.descriptionInput).setText(transaction.description)
         dialogView.findViewById<EditText>(R.id.amountInput).setText(transaction.amount.toString())
         
@@ -288,6 +352,35 @@ class HomeFragment : Fragment() {
             showCategorySelector(dialogView, type) { }
         }
 
+        dateButton.setOnClickListener {
+            DatePickerDialog(
+                requireContext(),
+                { _, year, month, dayOfMonth ->
+                    calendar.set(Calendar.YEAR, year)
+                    calendar.set(Calendar.MONTH, month)
+                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    updateDateTimeButtons()
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        timeButton.setOnClickListener {
+            TimePickerDialog(
+                requireContext(),
+                { _, hourOfDay, minute ->
+                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    calendar.set(Calendar.MINUTE, minute)
+                    updateDateTimeButtons()
+                },
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                true
+            ).show()
+        }
+
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Editar Transacción")
             .setView(dialogView)
@@ -301,7 +394,8 @@ class HomeFragment : Fragment() {
                         description = description,
                         amount = amount,
                         type = if (isIncome) "INGRESO" else "GASTO",
-                        category = selectedCategory!!.name
+                        category = selectedCategory!!.name,
+                        date = calendar.time
                     )
                     viewModel.updateTransaction(updatedTransaction)
                 } else {

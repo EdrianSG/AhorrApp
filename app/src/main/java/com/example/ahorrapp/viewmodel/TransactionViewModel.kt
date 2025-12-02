@@ -60,7 +60,8 @@ class TransactionViewModel(
         description: String,
         amount: Double,
         type: String,
-        category: String
+        category: String,
+        date: Date = Date()
     ) {
         viewModelScope.launch {
             try {
@@ -69,7 +70,8 @@ class TransactionViewModel(
                     description = description,
                     amount = amount,
                     type = type,
-                    category = category
+                    category = category,
+                    date = date
                 )
                 val result = repository.addTransaction(transaction)
                 
