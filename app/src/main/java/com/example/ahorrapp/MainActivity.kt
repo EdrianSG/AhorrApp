@@ -6,12 +6,17 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.ahorrapp.databinding.ActivityMainBinding
 import com.example.ahorrapp.utils.SessionManager
+import com.example.ahorrapp.utils.ThemeUtils
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatDelegate
 import android.content.Context
 import androidx.navigation.NavController
+import android.content.res.Resources
+import android.content.res.Configuration
+import java.util.Locale
+import java.io.File
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -25,14 +30,16 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Aplicar el tema antes de setContentView
+        // Aplicar el tema y color antes de setContentView
         applyTheme()
+        applyColorTheme()
         
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupNavigation()
     }
+
 
     private fun setupNavigation() {
         // Configurar el NavController
@@ -81,6 +88,20 @@ class MainActivity : AppCompatActivity() {
         if (AppCompatDelegate.getDefaultNightMode() != savedThemeMode) {
             AppCompatDelegate.setDefaultNightMode(savedThemeMode)
         }
+    }
+
+    private fun applyColorTheme() {
+        val colorTheme = ThemeUtils.getSavedColorTheme(this)
+        // Aplicar el tema correcto según el color seleccionado
+        val themeResId = when (colorTheme) {
+            "blue" -> R.style.Theme_AhorrApp_Blue
+            "red" -> R.style.Theme_AhorrApp_Red
+            "purple" -> R.style.Theme_AhorrApp_Purple
+            "orange" -> R.style.Theme_AhorrApp_Orange
+            "pink" -> R.style.Theme_AhorrApp_Pink
+            else -> R.style.Theme_AhorrApp_Green
+        }
+        setTheme(themeResId)
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {

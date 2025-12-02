@@ -14,9 +14,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
-import android.app.Activity
 import android.content.res.Configuration
 import com.example.ahorrapp.utils.SessionManager
+import com.example.ahorrapp.utils.ThemeUtils
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.widget.Toast
@@ -28,11 +28,13 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.content.Intent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class SettingsFragment : Fragment() {
     private lateinit var currencySpinner: Spinner
     private lateinit var languageSpinner: Spinner
     private lateinit var themeRadioGroup: RadioGroup
+    private lateinit var colorThemeSpinner: Spinner
     private lateinit var logoutButton: MaterialButton
     private lateinit var notificationSettingsButton: MaterialButton
     private lateinit var userNameText: TextView
@@ -55,6 +57,7 @@ class SettingsFragment : Fragment() {
         currencySpinner = view.findViewById(R.id.currencySpinner)
         languageSpinner = view.findViewById(R.id.languageSpinner)
         themeRadioGroup = view.findViewById(R.id.themeRadioGroup)
+        colorThemeSpinner = view.findViewById(R.id.colorThemeSpinner)
         logoutButton = view.findViewById(R.id.logoutButton)
         notificationSettingsButton = view.findViewById(R.id.notificationSettingsButton)
         userNameText = view.findViewById(R.id.userNameText)
@@ -63,6 +66,7 @@ class SettingsFragment : Fragment() {
         setupCurrencySpinner()
         setupLanguageSpinner()
         setupThemeSelection()
+        setupColorThemeSelection()
         setupLogoutButton()
         setupNotificationSettingsButton()
         loadUserData()
@@ -166,6 +170,54 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    private fun setupColorThemeSelection() {
+        ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.color_themes,
+            android.R.layout.simple_spinner_item
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            colorThemeSpinner.adapter = adapter
+        }
+
+        colorThemeSpinner.setOnItemSelectedListener { position ->
+            val colorThemes = resources.getStringArray(R.array.color_themes_values)
+            val selectedColor = colorThemes[position]
+            applyColorTheme(selectedColor)
+        }
+    }
+
+    private fun applyColorTheme(colorTheme: String) {
+        try {
+            val savedColor = ThemeUtils.getSavedColorTheme(requireContext())
+            if (savedColor != colorTheme) {
+                ThemeUtils.applyColorTheme(requireContext(), colorTheme)
+                
+                // Actualizar los colores dinámicos en colors.xml
+                updateDynamicColorsInXml(colorTheme)
+                
+                // Recrear la actividad para aplicar los nuevos colores
+                view?.postDelayed({
+                    activity?.recreate()
+                }, 100)
+            }
+        } catch (e: Exception) {
+            view?.let {
+                Snackbar.make(
+                    it,
+                    "Error al cambiar el color: ${e.message}",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+    
+    private fun updateDynamicColorsInXml(colorTheme: String) {
+        // No podemos modificar XML en tiempo de ejecución porque los recursos están compilados
+        // En su lugar, los colores se actualizarán cuando se recree la actividad
+        // El sistema leerá la preferencia guardada y aplicará los colores correctos
+    }
+
     private fun applyTheme(mode: Int) {
         try {
             val currentMode = AppCompatDelegate.getDefaultNightMode()
@@ -217,6 +269,14 @@ class SettingsFragment : Fragment() {
             else -> R.id.systemThemeRadio
         }
         themeRadioGroup.check(radioButtonId)
+
+        // Cargar color de tema
+        val savedColorTheme = ThemeUtils.getSavedColorTheme(requireContext())
+        val colorThemeValues = resources.getStringArray(R.array.color_themes_values)
+        val colorThemeIndex = colorThemeValues.indexOf(savedColorTheme)
+        if (colorThemeIndex >= 0) {
+            colorThemeSpinner.setSelection(colorThemeIndex)
+        }
     }
 
     private fun savePreference(key: String, value: String) {

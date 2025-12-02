@@ -1,17 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    
+    <!-- Tema base (modo oscuro) -->
     <style name="Theme.AhorrApp" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/primary_200</item>
-        <item name="colorPrimaryVariant">@color/primary_700</item>
+        <item name="colorPrimary">@color/dynamic_primary_200</item>
+        <item name="colorPrimaryVariant">@color/dynamic_primary_700</item>
         <item name="colorOnPrimary">@color/black</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/secondary_200</item>
-        <item name="colorSecondaryVariant">@color/secondary_200</item>
+        <item name="colorSecondary">@color/dynamic_secondary_200</item>
+        <item name="colorSecondaryVariant">@color/dynamic_secondary_200</item>
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
         <item name="android:windowAnimationStyle">@null</item>
     </style>
-</resources> 
+
+    <!-- Tema Verde (modo oscuro) -->
+    <style name="Theme.AhorrApp.Green" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/green_primary_200</item>
+        <item name="colorPrimaryVariant">@color/green_primary_700</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/green_secondary_200</item>
+        <item name="colorSecondaryVariant">@color/green_secondary_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- Tema Azul (modo oscuro) -->
+    <style name="Theme.AhorrApp.Blue" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/blue_primary_200</item>
+        <item name="colorPrimaryVariant">@color/blue_primary_700</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/blue_secondary_200</item>
+        <item name="colorSecondaryVariant">@color/blue_secondary_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- Tema Rojo (modo oscuro) -->
+    <style name="Theme.AhorrApp.Red" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/red_primary_200</item>
+        <item name="colorPrimaryVariant">@color/red_primary_700</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/red_secondary_200</item>
+        <item name="colorSecondaryVariant">@color/red_secondary_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- Tema Morado (modo oscuro) -->
+    <style name="Theme.AhorrApp.Purple" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/purple_primary_200</item>
+        <item name="colorPrimaryVariant">@color/purple_primary_700</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/purple_secondary_200</item>
+        <item name="colorSecondaryVariant">@color/purple_secondary_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- Tema Naranja (modo oscuro) -->
+    <style name="Theme.AhorrApp.Orange" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/orange_primary_200</item>
+        <item name="colorPrimaryVariant">@color/orange_primary_700</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/orange_secondary_200</item>
+        <item name="colorSecondaryVariant">@color/orange_secondary_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- Tema Rosa (modo oscuro) -->
+    <style name="Theme.AhorrApp.Pink" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/pink_primary_200</item>
+        <item name="colorPrimaryVariant">@color/pink_primary_700</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/pink_secondary_200</item>
+        <item name="colorSecondaryVariant">@color/pink_secondary_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+</resources>

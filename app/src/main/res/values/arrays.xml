@@ -27,4 +27,22 @@
         <item>en</item>
         <item>pt</item>
     </string-array>
+
+    <string-array name="color_themes">
+        <item>Verde</item>
+        <item>Azul</item>
+        <item>Rojo</item>
+        <item>Morado</item>
+        <item>Naranja</item>
+        <item>Rosa</item>
+    </string-array>
+
+    <string-array name="color_themes_values">
+        <item>green</item>
+        <item>blue</item>
+        <item>red</item>
+        <item>purple</item>
+        <item>orange</item>
+        <item>pink</item>
+    </string-array>
 </resources> 
