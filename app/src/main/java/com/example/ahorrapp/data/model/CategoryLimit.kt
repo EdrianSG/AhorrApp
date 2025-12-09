@@ -2,6 +2,7 @@ package com.example.ahorrapp.data.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.Date
 
@@ -13,8 +14,15 @@ import java.util.Date
             parentColumns = ["id"],
             childColumns = ["userId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Wallet::class,
+            parentColumns = ["id"],
+            childColumns = ["walletId"],
+            onDelete = ForeignKey.SET_NULL
         )
-    ]
+    ],
+    indices = [Index("walletId")]
 )
 data class CategoryLimit(
     @PrimaryKey(autoGenerate = true)
@@ -26,7 +34,8 @@ data class CategoryLimit(
     val startDate: Date,
     val endDate: Date,
     val createdAt: Date = Date(),
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val walletId: Long? = null // Billetera asociada al límite de gasto
 ) {
     val progress: Double
         get() = if (limitAmount > 0) (currentSpent / limitAmount) * 100 else 0.0

@@ -42,14 +42,15 @@ class SavingsGoalViewModel @Inject constructor(
         _refreshTrigger.value = Unit
     }
 
-    fun addSavingsGoal(name: String, targetAmount: Double, targetDate: Date) {
+    fun addSavingsGoal(name: String, targetAmount: Double, targetDate: Date, walletId: Long? = null) {
         viewModelScope.launch {
             try {
                 val goal = SavingsGoal(
                     userId = userId,
                     name = name,
                     targetAmount = targetAmount,
-                    targetDate = targetDate
+                    targetDate = targetDate,
+                    walletId = walletId
                 )
                 val result = repository.addSavingsGoal(goal)
                 _goalResult.value = result

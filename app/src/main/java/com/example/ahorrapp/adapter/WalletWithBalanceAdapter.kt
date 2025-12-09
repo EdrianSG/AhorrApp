@@ -14,8 +14,18 @@ data class WalletWithBalance(
     val wallet: Wallet,
     val balance: Double
 ) {
+    private var displayText: String? = null
+    
     fun getDisplayText(context: Context?): String {
-        return "${wallet.name} - ${CurrencyUtils.formatAmount(context, balance)}"
+        if (displayText == null) {
+            displayText = "${wallet.name} - ${CurrencyUtils.formatAmount(context, balance)}"
+        }
+        return displayText ?: "${wallet.name} - ${CurrencyUtils.formatAmount(context, balance)}"
+    }
+    
+    override fun toString(): String {
+        // Usar el texto de display si está disponible, sino usar el nombre de la billetera
+        return displayText ?: wallet.name
     }
 }
 

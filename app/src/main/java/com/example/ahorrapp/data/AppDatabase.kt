@@ -34,7 +34,7 @@ import com.example.ahorrapp.data.model.User
         NotificationSettings::class,
         Wallet::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -199,6 +199,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("AppDatabase", "Ejecutando migración 8_9")
+                // Agregar columna walletId a category_limits
+                database.execSQL("ALTER TABLE category_limits ADD COLUMN walletId INTEGER")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_category_limits_walletId ON category_limits(walletId)")
+                
+                Log.d("AppDatabase", "Migración 8_9 completada")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -210,7 +221,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "ahorrapp_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_7_8, MIGRATION_8_9)
                 .fallbackToDestructiveMigration()
                 .build()
                 Log.d("AppDatabase", "Base de datos creada exitosamente")

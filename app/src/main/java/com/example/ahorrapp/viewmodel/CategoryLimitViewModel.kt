@@ -27,7 +27,7 @@ class CategoryLimitViewModel @Inject constructor(
     private val _nearLimitLimits = MutableLiveData<List<CategoryLimit>>()
     val nearLimitLimits: LiveData<List<CategoryLimit>> = _nearLimitLimits
 
-    fun addCategoryLimit(category: String, limitAmount: Double, startDate: Date, endDate: Date) {
+    fun addCategoryLimit(category: String, limitAmount: Double, startDate: Date, endDate: Date, walletId: Long? = null) {
         viewModelScope.launch {
             try {
                 val limit = CategoryLimit(
@@ -35,7 +35,8 @@ class CategoryLimitViewModel @Inject constructor(
                     category = category,
                     limitAmount = limitAmount,
                     startDate = startDate,
-                    endDate = endDate
+                    endDate = endDate,
+                    walletId = walletId
                 )
                 val result = repository.addCategoryLimit(limit)
                 _limitResult.value = result

@@ -356,11 +356,20 @@ class ScheduledPaymentsFragment : Fragment() {
             // Calcular balance para cada billetera
             val walletsWithBalance = activeWallets.map { wallet ->
                 val balance = transactionRepository.getWalletBalance(userId, wallet.id)
-                WalletWithBalance(wallet, balance)
+                WalletWithBalance(wallet, balance).apply {
+                    // Pre-calcular el texto de display para que toString() funcione
+                    getDisplayText(requireContext())
+                }
             }
             
             val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
             walletInput.setAdapter(adapter)
+            
+            // Configurar listener para establecer el texto correcto cuando se selecciona un elemento
+            walletInput.setOnItemClickListener { _, _, position, _ ->
+                val selectedWallet = walletsWithBalance[position]
+                walletInput.setText(selectedWallet.getDisplayText(requireContext()), false)
+            }
             
             // Seleccionar la primera billetera por defecto si existe
             if (walletsWithBalance.isNotEmpty()) {
@@ -606,6 +615,10 @@ class ScheduledPaymentsFragment : Fragment() {
     // Savings Goals Dialogs
     private fun showAddSavingsGoalDialog() {
         val dialogBinding = DialogAddSavingsGoalBinding.inflate(layoutInflater)
+        
+        // Configurar selector de billetera
+        setupWalletSpinnerForSavingsGoal(dialogBinding.walletInput)
+        
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle("Crear meta de ahorro")
             .setView(dialogBinding.root)
@@ -641,7 +654,10 @@ class ScheduledPaymentsFragment : Fragment() {
         )
         val targetDate = calendar.time
 
-        savingsGoalViewModel.addSavingsGoal(name, targetAmount, targetDate)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val walletId = getSelectedWalletId(dialogBinding.walletInput)
+            savingsGoalViewModel.addSavingsGoal(name, targetAmount, targetDate, walletId)
+        }
     }
 
     private fun showEditSavingsGoalDialog(goal: SavingsGoal) {
@@ -657,6 +673,9 @@ class ScheduledPaymentsFragment : Fragment() {
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
         )
+
+        // Configurar selector de billetera
+        setupWalletSpinnerForSavingsGoal(dialogBinding.walletInput, goal)
 
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle("Editar meta de ahorro")
@@ -718,14 +737,57 @@ class ScheduledPaymentsFragment : Fragment() {
             // Calcular balance para cada billetera
             val walletsWithBalance = activeWallets.map { wallet ->
                 val balance = transactionRepository.getWalletBalance(userId, wallet.id)
-                WalletWithBalance(wallet, balance)
+                WalletWithBalance(wallet, balance).apply {
+                    // Pre-calcular el texto de display para que toString() funcione
+                    getDisplayText(requireContext())
+                }
             }
             
             val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
             walletInput.setAdapter(adapter)
             
+            // Configurar listener para establecer el texto correcto cuando se selecciona un elemento
+            walletInput.setOnItemClickListener { _, _, position, _ ->
+                val selectedWallet = walletsWithBalance[position]
+                walletInput.setText(selectedWallet.getDisplayText(requireContext()), false)
+            }
+            
             // Seleccionar la billetera de la meta si existe, sino la primera activa
             val selectedWallet = goal.walletId?.let { walletId ->
+                walletsWithBalance.find { it.wallet.id == walletId }
+            } ?: walletsWithBalance.firstOrNull()
+            
+            selectedWallet?.let {
+                walletInput.setText(it.getDisplayText(requireContext()), false)
+            }
+        }
+    }
+
+    private fun setupWalletSpinnerForSavingsGoal(walletInput: AutoCompleteTextView, goal: SavingsGoal? = null) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId()
+            val activeWallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            
+            // Calcular balance para cada billetera
+            val walletsWithBalance = activeWallets.map { wallet ->
+                val balance = transactionRepository.getWalletBalance(userId, wallet.id)
+                WalletWithBalance(wallet, balance).apply {
+                    // Pre-calcular el texto de display para que toString() funcione
+                    getDisplayText(requireContext())
+                }
+            }
+            
+            val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
+            walletInput.setAdapter(adapter)
+            
+            // Configurar listener para establecer el texto correcto cuando se selecciona un elemento
+            walletInput.setOnItemClickListener { _, _, position, _ ->
+                val selectedWallet = walletsWithBalance[position]
+                walletInput.setText(selectedWallet.getDisplayText(requireContext()), false)
+            }
+            
+            // Seleccionar la billetera de la meta si existe, sino la primera activa
+            val selectedWallet = goal?.walletId?.let { walletId ->
                 walletsWithBalance.find { it.wallet.id == walletId }
             } ?: walletsWithBalance.firstOrNull()
             
@@ -772,13 +834,17 @@ class ScheduledPaymentsFragment : Fragment() {
         }
     }
 
-    private fun setupCategoryLimitDialog(dialogBinding: DialogAddCategoryLimitBinding) {
+    private fun setupCategoryLimitDialog(dialogBinding: DialogAddCategoryLimitBinding, limit: CategoryLimit? = null) {
         Log.d(TAG, "setupCategoryLimitDialog: Configurando diálogo")
         try {
             val categories = Categories.EXPENSE_CATEGORIES.map { it.name }
             (dialogBinding.categoryInput as? AutoCompleteTextView)?.setAdapter(
                 ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categories)
             )
+            
+            // Configurar selector de billetera
+            setupWalletSpinnerForCategoryLimit(dialogBinding.walletInput, limit)
+            
             Log.d(TAG, "setupCategoryLimitDialog: Diálogo configurado correctamente")
         } catch (e: Exception) {
             Log.e(TAG, "setupCategoryLimitDialog: Error al configurar diálogo", e)
@@ -821,7 +887,10 @@ class ScheduledPaymentsFragment : Fragment() {
             val endDate = endCalendar.time
 
             Log.d(TAG, "saveCategoryLimit: Llamando al ViewModel con datos: $category, $limitAmount, $startDate, $endDate")
-            categoryLimitViewModel.addCategoryLimit(category, limitAmount, startDate, endDate)
+            viewLifecycleOwner.lifecycleScope.launch {
+                val walletId = getSelectedWalletId(dialogBinding.walletInput)
+                categoryLimitViewModel.addCategoryLimit(category, limitAmount, startDate, endDate, walletId)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "saveCategoryLimit: Error al guardar límite", e)
             Toast.makeText(requireContext(), "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -849,7 +918,7 @@ class ScheduledPaymentsFragment : Fragment() {
             endCalendar.get(Calendar.DAY_OF_MONTH)
         )
 
-        setupCategoryLimitDialog(dialogBinding)
+        setupCategoryLimitDialog(dialogBinding, limit)
 
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle("Editar límite de gasto")
@@ -862,6 +931,40 @@ class ScheduledPaymentsFragment : Fragment() {
             .create()
 
         dialog.show()
+    }
+
+    private fun setupWalletSpinnerForCategoryLimit(walletInput: AutoCompleteTextView, limit: CategoryLimit? = null) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val userId = sessionManager.getUserId()
+            val activeWallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            
+            // Calcular balance para cada billetera
+            val walletsWithBalance = activeWallets.map { wallet ->
+                val balance = transactionRepository.getWalletBalance(userId, wallet.id)
+                WalletWithBalance(wallet, balance).apply {
+                    // Pre-calcular el texto de display para que toString() funcione
+                    getDisplayText(requireContext())
+                }
+            }
+            
+            val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
+            walletInput.setAdapter(adapter)
+            
+            // Configurar listener para establecer el texto correcto cuando se selecciona un elemento
+            walletInput.setOnItemClickListener { _, _, position, _ ->
+                val selectedWallet = walletsWithBalance[position]
+                walletInput.setText(selectedWallet.getDisplayText(requireContext()), false)
+            }
+            
+            // Seleccionar la billetera del límite si existe, sino la primera activa
+            val selectedWallet = limit?.walletId?.let { walletId ->
+                walletsWithBalance.find { it.wallet.id == walletId }
+            } ?: walletsWithBalance.firstOrNull()
+            
+            selectedWallet?.let {
+                walletInput.setText(it.getDisplayText(requireContext()), false)
+            }
+        }
     }
 
     private fun showDeleteCategoryLimitConfirmationDialog(limit: CategoryLimit) {
