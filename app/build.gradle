@@ -13,8 +13,8 @@ android {
         applicationId "com.example.ahorrapp"
         minSdk 24
         targetSdk 34
-        versionCode 5
-        versionName "VAlpha 1.9.3"
+        versionCode 6
+        versionName "VAlpha 1.9.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -67,6 +67,8 @@ dependencies {
     // Hilt
     implementation "com.google.dagger:hilt-android:2.48"
     kapt "com.google.dagger:hilt-android-compiler:2.48"
+    
+    // No se necesita librería externa para CSV, se genera manualmente
     
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
