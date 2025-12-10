@@ -11,6 +11,7 @@ import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
@@ -232,12 +233,11 @@ class SettingsFragment : Fragment() {
             val currentMode = AppCompatDelegate.getDefaultNightMode()
             if (currentMode != mode) {
             savePreference("theme_mode", mode.toString())
-                
-                // Aplicar el tema después de un breve retraso para permitir que se guarde la preferencia
-                view?.postDelayed({
-            AppCompatDelegate.setDefaultNightMode(mode)
-                    // No es necesario recrear la actividad, Android lo hará automáticamente
-                }, 100)
+
+                // Aplicar inmediatamente y recrear para efecto instantáneo
+                AppCompatDelegate.setDefaultNightMode(mode)
+                (activity as? AppCompatActivity)?.delegate?.applyDayNight()
+                activity?.recreate()
             }
         } catch (e: Exception) {
             view?.let {

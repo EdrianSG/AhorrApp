@@ -32,8 +32,9 @@ class TransactionViewModel(
     private val _totalGastos = MutableLiveData<Double>(0.0)
     val totalGastos: LiveData<Double> = _totalGastos
 
-    private val _transactionResult = MutableLiveData<Result<Transaction>>()
-    val transactionResult: LiveData<Result<Transaction>> = _transactionResult
+    // Usar Result nullable para evitar re-emisión al volver a la pantalla
+    private val _transactionResult = MutableLiveData<Result<Transaction>?>()
+    val transactionResult: LiveData<Result<Transaction>?> = _transactionResult
 
     init {
         viewModelScope.launch {
@@ -142,6 +143,10 @@ class TransactionViewModel(
                 _transactionResult.value = Result.failure(e)
             }
         }
+    }
+
+    fun clearTransactionResult() {
+        _transactionResult.value = null
     }
 
     fun getCategoryTotals(type: String) = repository.getCategoryTotals(userId, type).asLiveData()

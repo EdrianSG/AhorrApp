@@ -172,6 +172,7 @@ class HomeFragment : Fragment() {
         }
 
         viewModel.transactionResult.observe(viewLifecycleOwner) { result ->
+            if (result == null) return@observe
             result.fold(
                 onSuccess = {
                     Toast.makeText(context, "Transacción guardada exitosamente", Toast.LENGTH_SHORT).show()
@@ -181,6 +182,8 @@ class HomeFragment : Fragment() {
                     Toast.makeText(context, "Error: ${exception.message}", Toast.LENGTH_SHORT).show()
                 }
             )
+            // Limpiar para evitar que el mensaje se repita al volver a la pestaña
+            viewModel.clearTransactionResult()
         }
     }
 
