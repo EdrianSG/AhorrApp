@@ -13,8 +13,8 @@ android {
         applicationId "com.example.ahorrapp"
         minSdk 24
         targetSdk 34
-        versionCode 6
-        versionName "VAlpha 1.9.4"
+        versionCode 7
+        versionName "Beta 1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
