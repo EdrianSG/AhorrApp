@@ -12,15 +12,12 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import com.example.ahorrapp.data.AppDatabase
 import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.model.CategoryTotal
 import com.example.ahorrapp.data.repository.TransactionRepository
-import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SessionManager
 import com.example.ahorrapp.viewmodel.TransactionViewModel
-import com.example.ahorrapp.viewmodel.TransactionViewModelFactory
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
@@ -28,12 +25,9 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.PercentFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.example.ahorrapp.data.repository.NotificationSettingsRepository
-import com.example.ahorrapp.service.EnhancedNotificationService
 import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
-import com.example.ahorrapp.data.model.Wallet
 import com.example.ahorrapp.data.repository.WalletRepository
 import com.example.ahorrapp.utils.ExcelExporter
 import com.google.android.material.button.MaterialButton
@@ -58,7 +52,9 @@ class SummaryFragment : Fragment() {
     private lateinit var nextPeriodButton: MaterialButton
     private lateinit var periodTypeGroup: RadioGroup
     private lateinit var exportButton: MaterialButton
-    private lateinit var sessionManager: SessionManager
+    
+    @Inject
+    lateinit var sessionManager: SessionManager
 
     @Inject
     lateinit var walletRepository: WalletRepository
@@ -75,15 +71,8 @@ class SummaryFragment : Fragment() {
     private var currentGastosPorCategoria: List<CategoryTotal> = emptyList()
     private var currentIngresosPorCategoria: List<CategoryTotal> = emptyList()
 
-    private val viewModel: TransactionViewModel by viewModels {
-        TransactionViewModelFactory(
-            TransactionRepository(AppDatabase.getDatabase(requireContext()).transactionDao()),
-            CategoryLimitRepository(AppDatabase.getDatabase(requireContext()).categoryLimitDao()),
-            EnhancedNotificationService(requireContext()),
-            NotificationSettingsRepository(AppDatabase.getDatabase(requireContext()).notificationSettingsDao()),
-            sessionManager.getUserId()
-        )
-    }
+    // ViewModel inyectado correctamente por Hilt
+    private val viewModel: TransactionViewModel by viewModels()
 
     private val currencyChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -95,27 +84,19 @@ class SummaryFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sessionManager = SessionManager(requireContext())
-
-        // Registrar el receptor de cambios de moneda
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(currencyChangeReceiver, IntentFilter("com.example.ahorrapp.CURRENCY_CHANGED"))
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Desregistrar el receptor de cambios de moneda
         LocalBroadcastManager.getInstance(requireContext())
             .unregisterReceiver(currencyChangeReceiver)
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_summary, container, false)
-    }
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View? = inflater.inflate(R.layout.fragment_summary, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -156,19 +137,16 @@ class SummaryFragment : Fragment() {
     }
 
     private fun setupPeriodControls() {
-        // Tipo de periodo
         periodTypeGroup.setOnCheckedChangeListener { _, checkedId ->
             currentPeriodType = when (checkedId) {
                 R.id.weekRadio -> PeriodType.WEEK
                 R.id.yearRadio -> PeriodType.YEAR
                 else -> PeriodType.MONTH
             }
-            // Reiniciar al periodo actual
             periodCalendar.time = Date()
             loadDataForCurrentPeriod()
         }
 
-        // Botones anterior / siguiente
         prevPeriodButton.setOnClickListener {
             shiftPeriod(-1)
             loadDataForCurrentPeriod()
@@ -196,7 +174,6 @@ class SummaryFragment : Fragment() {
             PeriodType.WEEK -> {
                 calStart.firstDayOfWeek = Calendar.MONDAY
                 calStart.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                calEnd.firstDayOfWeek = Calendar.MONDAY
                 calEnd.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
             }
             PeriodType.MONTH -> {
@@ -209,13 +186,11 @@ class SummaryFragment : Fragment() {
             }
         }
 
-        // Inicio del día
         calStart.set(Calendar.HOUR_OF_DAY, 0)
         calStart.set(Calendar.MINUTE, 0)
         calStart.set(Calendar.SECOND, 0)
         calStart.set(Calendar.MILLISECOND, 0)
 
-        // Fin del día
         calEnd.set(Calendar.HOUR_OF_DAY, 23)
         calEnd.set(Calendar.MINUTE, 59)
         calEnd.set(Calendar.SECOND, 59)
@@ -234,16 +209,14 @@ class SummaryFragment : Fragment() {
             PeriodType.MONTH -> "Mes: ${monthFormat.format(start)}"
             PeriodType.YEAR -> "Año: ${yearFormat.format(start)}"
         }
-        periodLabel.text = text.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        periodLabel.text = text.replaceFirstChar { it.titlecase(Locale.getDefault()) }
     }
 
     private fun loadDataForCurrentPeriod() {
         val (start, end) = getCurrentPeriodRange()
         updatePeriodLabel(start, end)
 
-        // Quitar observadores anteriores
         transactionsLiveData?.removeObservers(viewLifecycleOwner)
-
         transactionsLiveData = viewModel.getTransactionsByPeriod(start, end)
         transactionsLiveData?.observe(viewLifecycleOwner) { transactions ->
             updateSummaryForTransactions(transactions)
@@ -255,269 +228,92 @@ class SummaryFragment : Fragment() {
         val ingresos = transactions.filter { it.type == "INGRESO" }
         val gastos = transactions.filter { it.type == "GASTO" }
 
-        val totalIngresosValor = ingresos.sumOf { it.amount }
-        val totalGastosValor = gastos.sumOf { it.amount }
-        val balance = totalIngresosValor - totalGastosValor
+        val totalI = ingresos.sumOf { it.amount }
+        val totalG = gastos.sumOf { it.amount }
 
-        totalIngresos.text = CurrencyUtils.formatAmount(requireContext(), totalIngresosValor)
-        totalGastos.text = CurrencyUtils.formatAmount(requireContext(), totalGastosValor)
-        balanceTotal.text = CurrencyUtils.formatAmount(requireContext(), balance)
+        totalIngresos.text = CurrencyUtils.formatAmount(requireContext(), totalI)
+        totalGastos.text = CurrencyUtils.formatAmount(requireContext(), totalG)
+        balanceTotal.text = CurrencyUtils.formatAmount(requireContext(), totalI - totalG)
 
-        // Agrupar por categoría
-        currentGastosPorCategoria = gastos.groupBy { it.category }.map { (categoria, lista) ->
-            CategoryTotal(category = categoria, total = lista.sumOf { it.amount })
+        currentGastosPorCategoria = gastos.groupBy { it.category }.map { (c, l) ->
+            CategoryTotal(c, l.sumOf { it.amount })
         }
-        currentIngresosPorCategoria = ingresos.groupBy { it.category }.map { (categoria, lista) ->
-            CategoryTotal(category = categoria, total = lista.sumOf { it.amount })
+        currentIngresosPorCategoria = ingresos.groupBy { it.category }.map { (c, l) ->
+            CategoryTotal(c, l.sumOf { it.amount })
         }
 
-        updatePieChart(pieChartGastos, currentGastosPorCategoria, "Gastos por Categoría")
-        updatePieChart(pieChartIngresos, currentIngresosPorCategoria, "Ingresos por Categoría")
+        updatePieChart(pieChartGastos, currentGastosPorCategoria, "Gastos")
+        updatePieChart(pieChartIngresos, currentIngresosPorCategoria, "Ingresos")
     }
 
-    private fun updatePieChart(
-        pieChart: PieChart,
-        categoryTotals: List<com.example.ahorrapp.data.model.CategoryTotal>,
-        label: String
-    ) {
+    private fun updatePieChart(pieChart: PieChart, categoryTotals: List<CategoryTotal>, label: String) {
         if (categoryTotals.isEmpty()) {
-            pieChart.setNoDataText("No hay datos disponibles")
-            pieChart.invalidate()
+            pieChart.clear()
+            pieChart.setNoDataText("Sin datos")
             return
         }
 
-        val entries = categoryTotals.map { categoryTotal ->
-            PieEntry(categoryTotal.total.toFloat(), categoryTotal.category)
-        }
-
+        val entries = categoryTotals.map { PieEntry(it.total.toFloat(), it.category) }
         val dataSet = PieDataSet(entries, label).apply {
             colors = ColorTemplate.MATERIAL_COLORS.toList()
-            valueTextSize = 14f
             valueTextColor = Color.WHITE
             valueFormatter = PercentFormatter(pieChart)
-            yValuePosition = PieDataSet.ValuePosition.INSIDE_SLICE
             sliceSpace = 3f
         }
 
-        val pieData = PieData(dataSet).apply {
-            setValueTextSize(14f)
-            setValueTextColor(Color.WHITE)
-            setValueFormatter(PercentFormatter(pieChart))
-        }
-
-        pieChart.data = pieData
+        pieChart.data = PieData(dataSet).apply { setValueTextSize(12f) }
+        pieChart.animateXY(800, 800)
         pieChart.invalidate()
     }
 
     private fun setupExportButton() {
-        exportButton.setOnClickListener {
-            showExportDialog()
-        }
+        exportButton.setOnClickListener { showExportDialog() }
     }
 
     private fun showExportDialog() {
-        val options = arrayOf(
-            "Exportar Todo",
-            "Exportar Gastos",
-            "Exportar Ingresos",
-            "Exportar Billeteras",
-            "Exportar Gráficos"
-        )
-
+        val options = arrayOf("Todo", "Gastos", "Ingresos", "Billeteras")
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Exportar a Excel/CSV")
+            .setTitle("Exportar")
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> exportAll()
-                    1 -> exportGastos()
-                    2 -> exportIngresos()
+                    1 -> exportType("GASTO")
+                    2 -> exportType("INGRESO")
                     3 -> exportWallets()
-                    4 -> exportCharts()
                 }
-            }
-            .show()
+            }.show()
     }
 
     private fun exportAll() {
         lifecycleScope.launch {
-            try {
-                val userId = sessionManager.getUserId()
-                val wallets = walletRepository.getActiveWalletsByUserOnce(userId)
-                
-                val walletBalances = wallets.associate { wallet ->
-                    val balance = transactionRepository.getWalletBalance(userId, wallet.id)
-                    wallet.id to balance
-                }
-
-                val exporter = ExcelExporter(requireContext())
-                val file = exporter.exportAll(
-                    currentTransactions,
-                    wallets,
-                    walletBalances,
-                    currentGastosPorCategoria,
-                    currentIngresosPorCategoria
-                )
-
-                if (file != null) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Archivo exportado: ${file.name}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error al exportar el archivo",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            val userId = sessionManager.getUserId()
+            val wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            val balances = wallets.associate { it.id to transactionRepository.getWalletBalance(userId, it.id) }
+            val file = ExcelExporter(requireContext()).exportAll(currentTransactions, wallets, balances, currentGastosPorCategoria, currentIngresosPorCategoria)
+            Toast.makeText(requireContext(), if (file != null) "Exportado: ${file.name}" else "Error", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun exportGastos() {
+    private fun exportType(type: String) {
         lifecycleScope.launch {
-            try {
-                val gastos = currentTransactions.filter { it.type == "GASTO" }
-                val exporter = ExcelExporter(requireContext())
-                val file = exporter.exportTransactions(gastos, "gastos_${getCurrentDate()}.xlsx")
-
-                if (file != null) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Gastos exportados: ${file.name}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error al exportar",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
-    private fun exportIngresos() {
-        lifecycleScope.launch {
-            try {
-                val ingresos = currentTransactions.filter { it.type == "INGRESO" }
-                val exporter = ExcelExporter(requireContext())
-                val file = exporter.exportTransactions(ingresos, "ingresos_${getCurrentDate()}.xlsx")
-
-                if (file != null) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Ingresos exportados: ${file.name}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error al exportar",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            val transactions = currentTransactions.filter { it.type == type }
+            val file = ExcelExporter(requireContext()).exportTransactions(transactions, "${type.lowercase()}_export.xlsx")
+            Toast.makeText(requireContext(), if (file != null) "Exportado" else "Error", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun exportWallets() {
         lifecycleScope.launch {
-            try {
-                val userId = sessionManager.getUserId()
-                val wallets = walletRepository.getActiveWalletsByUserOnce(userId)
-                
-                val walletBalances = wallets.associate { wallet ->
-                    val balance = transactionRepository.getWalletBalance(userId, wallet.id)
-                    wallet.id to balance
-                }
-
-                val exporter = ExcelExporter(requireContext())
-                val file = exporter.exportWallets(wallets, walletBalances)
-
-                if (file != null) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Billeteras exportadas: ${file.name}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error al exportar",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            val userId = sessionManager.getUserId()
+            val wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            val balances = wallets.associate { it.id to transactionRepository.getWalletBalance(userId, it.id) }
+            val file = ExcelExporter(requireContext()).exportWallets(wallets, balances)
+            Toast.makeText(requireContext(), if (file != null) "Exportado" else "Error", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun exportCharts() {
-        lifecycleScope.launch {
-            try {
-                val exporter = ExcelExporter(requireContext())
-                val file = exporter.exportCharts(
-                    currentGastosPorCategoria,
-                    currentIngresosPorCategoria
-                )
-
-                if (file != null) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Gráficos exportados: ${file.name}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Error al exportar",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(
-                    requireContext(),
-                    "Error: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
-    private fun getCurrentDate(): String {
-        val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-        return dateFormat.format(Date())
     }
 
     override fun onResume() {
         super.onResume()
-        // Cuando volvemos, recargamos el periodo actual
         loadDataForCurrentPeriod()
     }
-} 
+}

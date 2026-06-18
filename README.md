@@ -139,5 +139,5 @@ Para preguntas o soporte, contacta al equipo de desarrollo.
 
 ---
 
-**Versión**: 1.0.0  
+**Versión**: 1.0.1 (Beta)
 **Última actualización**: Diciembre 2024 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.provider.BaseColumns
+import android.util.Log
 
 object FinanzasContract {
     object TransaccionEntry : BaseColumns {
@@ -23,7 +24,7 @@ class FinanzasDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
         const val DATABASE_NAME = "Finanzas.db"
 
         private const val SQL_CREATE_ENTRIES = """
-            CREATE TABLE ${FinanzasContract.TransaccionEntry.TABLE_NAME} (
+            CREATE TABLE IF NOT EXISTS ${FinanzasContract.TransaccionEntry.TABLE_NAME} (
                 ${BaseColumns._ID} INTEGER PRIMARY KEY,
                 ${FinanzasContract.TransaccionEntry.COLUMN_DESCRIPCION} TEXT,
                 ${FinanzasContract.TransaccionEntry.COLUMN_MONTO} REAL,
@@ -32,8 +33,6 @@ class FinanzasDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
                 ${FinanzasContract.TransaccionEntry.COLUMN_CATEGORIA} TEXT
             )
         """
-
-        private const val SQL_DELETE_ENTRIES = "DROP TABLE IF EXISTS ${FinanzasContract.TransaccionEntry.TABLE_NAME}"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -41,7 +40,9 @@ class FinanzasDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL(SQL_DELETE_ENTRIES)
-        onCreate(db)
+        // COMENTADO PARA EVITAR PÉRDIDA DE DATOS EN BETA
+        // db.execSQL("DROP TABLE IF EXISTS ${FinanzasContract.TransaccionEntry.TABLE_NAME}")
+        // onCreate(db)
+        Log.w("FinanzasDatabase", "onUpgrade llamado de $oldVersion a $newVersion. No se borraron datos.")
     }
-} 
+}

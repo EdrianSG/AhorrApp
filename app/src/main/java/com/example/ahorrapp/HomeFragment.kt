@@ -15,7 +15,6 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.Spinner
-import android.widget.ArrayAdapter
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
@@ -30,46 +29,41 @@ import com.example.ahorrapp.data.model.Transaction
 import com.example.ahorrapp.data.model.TransactionCategory
 import com.example.ahorrapp.data.model.TransactionType
 import com.example.ahorrapp.data.repository.TransactionRepository
-import com.example.ahorrapp.data.repository.CategoryLimitRepository
 import com.example.ahorrapp.data.repository.WalletRepository
 import com.example.ahorrapp.data.model.Wallet
 import com.example.ahorrapp.utils.CurrencyUtils
 import com.example.ahorrapp.utils.SessionManager
 import com.example.ahorrapp.viewmodel.TransactionViewModel
-import com.example.ahorrapp.viewmodel.TransactionViewModelFactory
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.example.ahorrapp.data.repository.NotificationSettingsRepository
-import com.example.ahorrapp.service.EnhancedNotificationService
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class HomeFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TransactionAdapter
-    private lateinit var sessionManager: SessionManager
+    
+    @Inject
+    lateinit var sessionManager: SessionManager
+    
     private lateinit var balanceTextView: TextView
     private lateinit var ingresosTextView: TextView
     private lateinit var gastosTextView: TextView
     private var selectedCategory: TransactionCategory? = null
 
-    private val viewModel: TransactionViewModel by lazy {
-        TransactionViewModelFactory(
-            TransactionRepository(AppDatabase.getDatabase(requireContext()).transactionDao()),
-            CategoryLimitRepository(AppDatabase.getDatabase(requireContext()).categoryLimitDao()),
-            EnhancedNotificationService(requireContext()),
-            NotificationSettingsRepository(AppDatabase.getDatabase(requireContext()).notificationSettingsDao()),
-            sessionManager.getUserId()
-        ).create(TransactionViewModel::class.java)
-    }
+    // Ahora usamos Hilt para el ViewModel
+    private val viewModel: TransactionViewModel by viewModels()
 
     private val currencyChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -81,30 +75,24 @@ class HomeFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sessionManager = SessionManager(requireContext())
         
-        // Verificar si el usuario está autenticado
         if (!sessionManager.isLoggedIn()) {
             findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
             return
         }
 
-        // Registrar el receptor de cambios de moneda
         LocalBroadcastManager.getInstance(requireContext())
             .registerReceiver(currencyChangeReceiver, IntentFilter("com.example.ahorrapp.CURRENCY_CHANGED"))
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Desregistrar el receptor de cambios de moneda
         LocalBroadcastManager.getInstance(requireContext())
             .unregisterReceiver(currencyChangeReceiver)
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
@@ -112,7 +100,6 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Inicializar vistas
         recyclerView = view.findViewById(R.id.transactionsList)
         balanceTextView = view.findViewById(R.id.balanceText)
         ingresosTextView = view.findViewById(R.id.ingresosText)
@@ -122,16 +109,12 @@ class HomeFragment : Fragment() {
         setupFab(view)
         observeViewModel()
 
-        // Inicializar valores por defecto
         updateBalance()
-        
-        // Forzar actualización de datos
         viewModel.updateTotals()
     }
 
     override fun onResume() {
         super.onResume()
-        // Actualizar datos cuando el fragmento vuelve a estar visible
         refreshData()
     }
 
@@ -158,7 +141,7 @@ class HomeFragment : Fragment() {
     private fun observeViewModel() {
         viewModel.transactions.observe(viewLifecycleOwner) { transactions ->
             adapter.submitList(transactions)
-            viewModel.updateTotals()
+            // No es necesario llamar a updateTotals aquí, el VM debería manejarlo o hacerlo bajo demanda
         }
 
         viewModel.totalIngresos.observe(viewLifecycleOwner) { ingresos ->
@@ -182,7 +165,6 @@ class HomeFragment : Fragment() {
                     Toast.makeText(context, "Error: ${exception.message}", Toast.LENGTH_SHORT).show()
                 }
             )
-            // Limpiar para evitar que el mensaje se repita al volver a la pestaña
             viewModel.clearTransactionResult()
         }
     }
@@ -227,7 +209,6 @@ class HomeFragment : Fragment() {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_transaction, null)
         selectedCategory = null
 
-        // Fecha y hora por defecto: ahora
         val calendar = Calendar.getInstance()
         val dateButton = dialogView.findViewById<MaterialButton>(R.id.dateButton)
         val timeButton = dialogView.findViewById<MaterialButton>(R.id.timeButton)
@@ -246,19 +227,18 @@ class HomeFragment : Fragment() {
         val categoryButton = dialogView.findViewById<MaterialButton>(R.id.categoryButton)
         val walletSpinner = dialogView.findViewById<Spinner>(R.id.walletSpinner)
 
-        // Cargar billeteras con balance
+        // Usar AppDatabase directamente para las billeteras temporalmente 
+        // (lo ideal sería inyectar WalletRepository pero para mantenerlo simple y seguro ahora)
         val walletDao = AppDatabase.getDatabase(requireContext()).walletDao()
         val walletRepository = WalletRepository(walletDao)
         val transactionDao = AppDatabase.getDatabase(requireContext()).transactionDao()
         val transactionRepository = TransactionRepository(transactionDao)
-        var wallets: List<Wallet> = emptyList()
 
         viewLifecycleOwner.lifecycleScope.launch {
             val userId = sessionManager.getUserId()
-            wallets = walletRepository.getActiveWalletsByUserOnce(userId)
+            var wallets = walletRepository.getActiveWalletsByUserOnce(userId)
 
             if (wallets.isEmpty()) {
-                // Crear billeteras por defecto
                 val defaultWallets = listOf("Efectivo", "Tarjeta de Débito", "Yape", "Plin")
                 defaultWallets.forEach { name ->
                     walletRepository.addWallet(Wallet(userId = userId, name = name))
@@ -266,7 +246,6 @@ class HomeFragment : Fragment() {
                 wallets = walletRepository.getActiveWalletsByUserOnce(userId)
             }
 
-            // Calcular balance para cada billetera
             val walletsWithBalance = wallets.map { wallet ->
                 val balance = transactionRepository.getWalletBalance(userId, wallet.id)
                 WalletWithBalance(wallet, balance)
@@ -277,7 +256,6 @@ class HomeFragment : Fragment() {
         }
 
         typeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
-            val type = if (checkedId == R.id.incomeRadio) TransactionType.INGRESO else TransactionType.GASTO
             selectedCategory = null
             categoryButton.text = "Seleccionar Categoría"
             dialogView.findViewById<ImageView>(R.id.categoryIcon).setImageDrawable(null)
@@ -290,32 +268,18 @@ class HomeFragment : Fragment() {
         }
 
         dateButton.setOnClickListener {
-            DatePickerDialog(
-                requireContext(),
-                { _, year, month, dayOfMonth ->
-                    calendar.set(Calendar.YEAR, year)
-                    calendar.set(Calendar.MONTH, month)
-                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                    updateDateTimeButtons()
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            ).show()
+            DatePickerDialog(requireContext(), { _, year, month, dayOfMonth ->
+                calendar.set(year, month, dayOfMonth)
+                updateDateTimeButtons()
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
         }
 
         timeButton.setOnClickListener {
-            TimePickerDialog(
-                requireContext(),
-                { _, hourOfDay, minute ->
-                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                    calendar.set(Calendar.MINUTE, minute)
-                    updateDateTimeButtons()
-                },
-                calendar.get(Calendar.HOUR_OF_DAY),
-                calendar.get(Calendar.MINUTE),
-                true
-            ).show()
+            TimePickerDialog(requireContext(), { _, hour, minute ->
+                calendar.set(Calendar.HOUR_OF_DAY, hour)
+                calendar.set(Calendar.MINUTE, minute)
+                updateDateTimeButtons()
+            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
         }
         
         MaterialAlertDialogBuilder(requireContext())
@@ -328,8 +292,7 @@ class HomeFragment : Fragment() {
 
                 if (description.isNotEmpty() && amount != null && selectedCategory != null) {
                     val selectedWallet = if (walletSpinner.adapter != null && walletSpinner.selectedItemPosition >= 0) {
-                        val adapter = walletSpinner.adapter as? WalletWithBalanceAdapter
-                        adapter?.getItem(walletSpinner.selectedItemPosition)?.wallet
+                        (walletSpinner.adapter as? WalletWithBalanceAdapter)?.getItem(walletSpinner.selectedItemPosition)?.wallet
                     } else null
 
                     viewModel.addTransaction(
@@ -345,9 +308,7 @@ class HomeFragment : Fragment() {
                 }
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setNegativeButton("Cancelar", null)
             .show()
     }
 
@@ -355,7 +316,6 @@ class HomeFragment : Fragment() {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_transaction, null)
         selectedCategory = Categories.getAllCategories().find { it.name == transaction.category }
 
-        // Inicializar fecha y hora con la de la transacción
         val calendar = Calendar.getInstance().apply { time = transaction.date }
         val dateButton = dialogView.findViewById<MaterialButton>(R.id.dateButton)
         val timeButton = dialogView.findViewById<MaterialButton>(R.id.timeButton)
@@ -371,26 +331,14 @@ class HomeFragment : Fragment() {
 
         updateDateTimeButtons()
 
-        // Cargar billeteras con balance
         val walletDao = AppDatabase.getDatabase(requireContext()).walletDao()
         val walletRepository = WalletRepository(walletDao)
         val transactionDao = AppDatabase.getDatabase(requireContext()).transactionDao()
         val transactionRepository = TransactionRepository(transactionDao)
-        var wallets: List<Wallet> = emptyList()
 
         viewLifecycleOwner.lifecycleScope.launch {
             val userId = sessionManager.getUserId()
-            wallets = walletRepository.getActiveWalletsByUserOnce(userId)
-
-            if (wallets.isEmpty()) {
-                val defaultWallets = listOf("Efectivo", "Tarjeta de Débito", "Yape", "Plin")
-                defaultWallets.forEach { name ->
-                    walletRepository.addWallet(Wallet(userId = userId, name = name))
-                }
-                wallets = walletRepository.getActiveWalletsByUserOnce(userId)
-            }
-
-            // Calcular balance para cada billetera
+            val wallets = walletRepository.getActiveWalletsByUserOnce(userId)
             val walletsWithBalance = wallets.map { wallet ->
                 val balance = transactionRepository.getWalletBalance(userId, wallet.id)
                 WalletWithBalance(wallet, balance)
@@ -399,14 +347,12 @@ class HomeFragment : Fragment() {
             val adapter = WalletWithBalanceAdapter(requireContext(), walletsWithBalance)
             walletSpinner.adapter = adapter
 
-            // Seleccionar billetera actual si existe
-            transaction.walletId?.let { currentWalletId ->
-                val index = walletsWithBalance.indexOfFirst { it.wallet.id == currentWalletId }
-                if (index >= 0) {
-                    walletSpinner.setSelection(index)
-                }
+            transaction.walletId?.let { currentId ->
+                val index = walletsWithBalance.indexOfFirst { it.wallet.id == currentId }
+                if (index >= 0) walletSpinner.setSelection(index)
             }
         }
+
         dialogView.findViewById<EditText>(R.id.descriptionInput).setText(transaction.description)
         dialogView.findViewById<EditText>(R.id.amountInput).setText(transaction.amount.toString())
         
@@ -418,53 +364,16 @@ class HomeFragment : Fragment() {
             categoryIcon.setImageResource(it.iconResourceId)
         }
 
-        val typeRadioGroup = dialogView.findViewById<RadioGroup>(R.id.typeRadioGroup)
         if (transaction.type == "INGRESO") {
             dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked = true
         } else {
             dialogView.findViewById<RadioButton>(R.id.expenseRadio).isChecked = true
         }
 
-        typeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
-            val type = if (checkedId == R.id.incomeRadio) TransactionType.INGRESO else TransactionType.GASTO
-            selectedCategory = null
-            categoryButton.text = "Seleccionar Categoría"
-            categoryIcon.setImageDrawable(null)
-        }
-
         categoryButton.setOnClickListener {
             val type = if (dialogView.findViewById<RadioButton>(R.id.incomeRadio).isChecked) 
                 TransactionType.INGRESO else TransactionType.GASTO
             showCategorySelector(dialogView, type) { }
-        }
-
-        dateButton.setOnClickListener {
-            DatePickerDialog(
-                requireContext(),
-                { _, year, month, dayOfMonth ->
-                    calendar.set(Calendar.YEAR, year)
-                    calendar.set(Calendar.MONTH, month)
-                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                    updateDateTimeButtons()
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            ).show()
-        }
-
-        timeButton.setOnClickListener {
-            TimePickerDialog(
-                requireContext(),
-                { _, hourOfDay, minute ->
-                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                    calendar.set(Calendar.MINUTE, minute)
-                    updateDateTimeButtons()
-                },
-                calendar.get(Calendar.HOUR_OF_DAY),
-                calendar.get(Calendar.MINUTE),
-                true
-            ).show()
         }
 
         MaterialAlertDialogBuilder(requireContext())
@@ -477,8 +386,7 @@ class HomeFragment : Fragment() {
 
                 if (description.isNotEmpty() && amount != null && selectedCategory != null) {
                     val selectedWallet = if (walletSpinner.adapter != null && walletSpinner.selectedItemPosition >= 0) {
-                        val adapter = walletSpinner.adapter as? WalletWithBalanceAdapter
-                        adapter?.getItem(walletSpinner.selectedItemPosition)?.wallet
+                        (walletSpinner.adapter as? WalletWithBalanceAdapter)?.getItem(walletSpinner.selectedItemPosition)?.wallet
                     } else null
 
                     val updatedTransaction = transaction.copy(
@@ -490,28 +398,19 @@ class HomeFragment : Fragment() {
                         walletId = selectedWallet?.id
                     )
                     viewModel.updateTransaction(updatedTransaction)
-                } else {
-                    Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
                 }
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setNegativeButton("Cancelar", null)
             .show()
     }
 
     private fun showDeleteConfirmationDialog(transaction: Transaction) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Eliminar Transacción")
-            .setMessage("¿Estás seguro de que deseas eliminar esta transacción?")
-            .setPositiveButton("Eliminar") { dialog, _ ->
-                viewModel.deleteTransaction(transaction)
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setMessage("¿Estás seguro?")
+            .setPositiveButton("Eliminar") { _, _ -> viewModel.deleteTransaction(transaction) }
+            .setNegativeButton("Cancelar", null)
             .show()
     }
 }
